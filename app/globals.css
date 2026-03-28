@@ -130,6 +130,10 @@
     }
   }
 
+  .animate-gold-shimmer {
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
   .gold-shimmer-text {
     background: linear-gradient(
       90deg,

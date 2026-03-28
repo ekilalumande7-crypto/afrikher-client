@@ -147,13 +147,13 @@ export default function AbonnementsPage() {
       <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-4">
-            <p className="font-sans text-sm uppercase tracking-wider text-afrikher-gray">
+            <span className="inline-block bg-afrikher-gold px-4 py-2 font-sans text-xs uppercase tracking-wider text-afrikher-dark font-semibold">
               Tarifs
-            </p>
+            </span>
           </div>
           <h1 className="font-display text-5xl md:text-7xl font-bold text-afrikher-dark mb-4">
             Simple &{' '}
-            <span className="text-afrikher-gray" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+            <span className="text-afrikher-gold" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
               Transparent
             </span>
           </h1>
@@ -244,13 +244,22 @@ export default function AbonnementsPage() {
                 <button
                   onClick={() => plan.isEnterprise ? handleContactEnterprise() : handleSubscribe(plan.plan)}
                   disabled={loading !== null || (subscription?.status === 'active' && !plan.isEnterprise)}
-                  className={`w-full py-4 px-6 font-sans font-semibold text-sm flex items-center justify-between group transition-all duration-300 ${
+                  className={`relative w-full py-4 px-6 font-sans font-semibold text-sm flex items-center justify-between group overflow-hidden transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     plan.featured
-                      ? 'bg-afrikher-gold text-afrikher-dark hover:bg-opacity-90'
+                      ? 'bg-afrikher-dark text-afrikher-cream border-2 border-afrikher-gold'
                       : 'border-2 border-afrikher-dark text-afrikher-dark hover:bg-afrikher-dark hover:text-afrikher-cream'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  }`}
                 >
-                  <span>
+                  {plan.featured && (
+                    <span
+                      className="absolute inset-0 animate-gold-shimmer"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent 0%, rgba(201, 168, 76, 0.3) 45%, rgba(244, 228, 184, 0.5) 50%, rgba(201, 168, 76, 0.3) 55%, transparent 100%)',
+                        backgroundSize: '200% 100%'
+                      }}
+                    />
+                  )}
+                  <span className="relative z-10">
                     {loading === plan.plan
                       ? 'Redirection...'
                       : subscription?.status === 'active' && !plan.isEnterprise
@@ -259,7 +268,7 @@ export default function AbonnementsPage() {
                       ? 'Contacter notre équipe'
                       : 'Choisir ce plan'}
                   </span>
-                  <ArrowUpRight className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
+                  <ArrowUpRight className="relative z-10 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-300" />
                 </button>
               </div>
             </div>
