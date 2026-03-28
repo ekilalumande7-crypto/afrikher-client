@@ -54,13 +54,6 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex flex-col items-start group">
-              <div className="mb-1 px-4 py-1 bg-gradient-to-r from-[#D4B661] via-[#F4E4A6] to-[#C9A84C] relative overflow-hidden transform -skew-x-12 shadow-[0_4px_15px_rgba(201,168,76,0.4)]">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent opacity-60 pointer-events-none"></div>
-                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
-                <span className="block text-[9px] font-sans uppercase tracking-[0.25em] text-afrikher-dark font-bold transform skew-x-12 relative z-10">
-                  MAGAZINE
-                </span>
-              </div>
               <h1 className="text-2xl md:text-3xl font-display font-bold text-afrikher-cream group-hover:text-afrikher-gold transition-colors duration-300">
                 AFRIKHER
               </h1>
