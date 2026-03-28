@@ -56,18 +56,13 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <Link href="/" className="flex items-center space-x-3 group">
+            <Link href="/" className="flex flex-col items-start group">
               <h1 className={cn(
                 "text-2xl md:text-3xl font-display font-bold group-hover:text-afrikher-gold transition-colors duration-300",
                 isLightPage ? "text-afrikher-dark" : "text-afrikher-cream"
               )}>
                 AFRIKHER
               </h1>
-              <div className="border border-afrikher-gold px-3 py-1">
-                <span className="text-[10px] font-sans uppercase tracking-widest text-afrikher-gold">
-                  Magazine
-                </span>
-              </div>
             </Link>
 
             <div className="flex items-center space-x-6">
