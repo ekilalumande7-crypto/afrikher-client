@@ -74,28 +74,6 @@ export default function Navbar() {
                 En savoir plus
               </button>
 
-              {user ? (
-                <Link
-                  href="/dashboard"
-                  className="hidden sm:flex items-center space-x-2 px-4 py-2 border border-afrikher-gold/30 text-white hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300"
-                >
-                  <User className="w-4 h-4" />
-                  <span className="font-sans text-xs uppercase tracking-wide">Mon Compte</span>
-                </Link>
-              ) : (
-                <Link
-                  href="/auth/connexion"
-                  className="hidden sm:block px-4 py-2 border border-white/30 text-white font-sans text-xs uppercase tracking-wide hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300"
-                  style={{
-                    fontFamily: 'DM Sans, sans-serif',
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.15em',
-                  }}
-                >
-                  Connexion
-                </Link>
-              )}
-
               <button
                 className="flex items-center space-x-2 text-white hover:text-afrikher-gold transition-colors duration-300"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
