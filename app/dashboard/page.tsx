@@ -17,36 +17,13 @@ export default function DashboardPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
-
-      setUser(user);
-
-      const [profileRes, subscriptionRes, ordersRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-        supabase.from('subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-      ]);
-
-      if (profileRes.data) setProfile(profileRes.data);
-      if (subscriptionRes.data) setSubscription(subscriptionRes.data);
-      if (ordersRes.data) setOrders(ordersRes.data);
-
-      setLoading(false);
-    };
-
-    fetchData();
+    setUser({ email: 'client@afrikher.com' });
+    setProfile({ full_name: 'Client AFRIKHER', role: 'client' });
+    setLoading(false);
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
     router.push('/');
-    router.refresh();
   };
 
   if (loading) {
