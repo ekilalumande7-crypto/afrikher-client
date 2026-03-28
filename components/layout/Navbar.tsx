@@ -15,6 +15,9 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const supabase = createClient();
 
+  const lightPages = ['/abonnements'];
+  const isLightPage = lightPages.includes(pathname);
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -54,7 +57,10 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link href="/" className="flex flex-col items-start group">
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-afrikher-cream group-hover:text-afrikher-gold transition-colors duration-300">
+              <h1 className={cn(
+                "text-2xl md:text-3xl font-display font-bold group-hover:text-afrikher-gold transition-colors duration-300",
+                isLightPage ? "text-afrikher-dark" : "text-afrikher-cream"
+              )}>
                 AFRIKHER
               </h1>
             </Link>
@@ -62,7 +68,10 @@ export default function Navbar() {
             <div className="flex items-center space-x-6">
               <button
                 onClick={() => setIsAboutOpen(true)}
-                className="hidden md:block font-sans text-sm uppercase tracking-wide text-white hover:text-afrikher-gold transition-colors duration-300"
+                className={cn(
+                  "hidden md:block font-sans text-sm uppercase tracking-wide hover:text-afrikher-gold transition-colors duration-300",
+                  isLightPage ? "text-afrikher-dark" : "text-white"
+                )}
               >
                 En savoir plus
               </button>
@@ -70,7 +79,10 @@ export default function Navbar() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="hidden sm:flex items-center space-x-2 px-4 py-2 border border-afrikher-gold/30 text-white hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300"
+                  className={cn(
+                    "hidden sm:flex items-center space-x-2 px-4 py-2 border border-afrikher-gold/30 hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300",
+                    isLightPage ? "text-afrikher-dark" : "text-white"
+                  )}
                 >
                   <User className="w-4 h-4" />
                   <span className="font-sans text-xs uppercase tracking-wide">Mon Compte</span>
@@ -78,14 +90,20 @@ export default function Navbar() {
               ) : (
                 <Link
                   href="/auth/login"
-                  className="hidden sm:block px-4 py-2 border border-afrikher-gold/30 text-white font-sans text-xs uppercase tracking-wide hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300"
+                  className={cn(
+                    "hidden sm:block px-4 py-2 border border-afrikher-gold/30 font-sans text-xs uppercase tracking-wide hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300",
+                    isLightPage ? "text-afrikher-dark" : "text-white"
+                  )}
                 >
                   Connexion
                 </Link>
               )}
 
               <button
-                className="flex items-center space-x-2 text-white hover:text-afrikher-gold transition-colors duration-300"
+                className={cn(
+                  "flex items-center space-x-2 hover:text-afrikher-gold transition-colors duration-300",
+                  isLightPage ? "text-afrikher-dark" : "text-white"
+                )}
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Menu"
               >
