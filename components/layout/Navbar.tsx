@@ -1,269 +1,299 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, X, User } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function Navbar() {
-  const pathname = usePathname();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const supabase = createClient();
-
-  const lightPages = ['/abonnements'];
-  const isLightPage = lightPages.includes(pathname);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navLinks = [
-    { href: '/', label: 'Accueil', number: '01' },
-    { href: '/journal', label: 'Magazine', number: '02' },
-    { href: '/boutique', label: 'Rubriques', number: '03' },
-    { href: '/qui-sommes-nous', label: 'Qui sommes-nous ?', number: '04' },
-    { href: '/blog', label: 'Blog', number: '05' },
-    { href: '/abonnements', label: 'Abonnement', number: '06' },
-    { href: '/contact', label: 'Contact', number: '07' },
-    { href: '/partenaires', label: 'Partenaires', number: '08' },
+    { id: "01", name: "Accueil", href: "/" },
+    { id: "02", name: "Magazine", href: "/magazine" },
+    { id: "03", name: "Rubriques", href: "/rubriques" },
+    { id: "04", name: "Boutique", href: "/boutique" },
+    { id: "05", name: "Blog", href: "/blog" },
+    { id: "06", name: "Abonnement", href: "/abonnement" },
+    { id: "07", name: "Contact", href: "/contact" },
+    { id: "08", name: "Partenaires", href: "/partenaires" },
   ];
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <Link href="/" className="flex flex-col items-start group">
-              <h1 className={cn(
-                "text-2xl md:text-3xl font-display font-bold group-hover:text-afrikher-gold transition-colors duration-300",
-                isLightPage ? "text-afrikher-dark" : "text-afrikher-cream"
-              )}>
-                AFRIKHER
-              </h1>
-            </Link>
-
-            <div className="flex items-center space-x-6">
-              <button
-                onClick={() => setIsAboutOpen(true)}
-                className={cn(
-                  "hidden md:block font-sans text-sm uppercase tracking-wide hover:text-afrikher-gold transition-colors duration-300",
-                  isLightPage ? "text-afrikher-dark" : "text-white"
-                )}
-              >
-                En savoir plus
-              </button>
-
-              {user ? (
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    "hidden sm:flex items-center space-x-2 px-4 py-2 border border-afrikher-gold/30 hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300",
-                    isLightPage ? "text-afrikher-dark" : "text-white"
-                  )}
-                >
-                  <User className="w-4 h-4" />
-                  <span className="font-sans text-xs uppercase tracking-wide">Mon Compte</span>
-                </Link>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className={cn(
-                    "hidden sm:block px-4 py-2 border border-afrikher-gold/30 font-sans text-xs uppercase tracking-wide hover:border-afrikher-gold hover:text-afrikher-gold transition-colors duration-300",
-                    isLightPage ? "text-afrikher-dark" : "text-white"
-                  )}
-                >
-                  Connexion
-                </Link>
-              )}
-
-              <button
-                className={cn(
-                  "flex items-center space-x-2 hover:text-afrikher-gold transition-colors duration-300",
-                  isLightPage ? "text-afrikher-dark" : "text-white"
-                )}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                aria-label="Menu"
-              >
-                <Menu className="w-6 h-6" />
-                <span className="font-sans text-sm uppercase tracking-wide">Menu</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      <div
+      <header 
         className={cn(
-          'fixed inset-0 bg-black z-40 transition-all duration-700 ease-out',
-          isMenuOpen ? 'bg-opacity-70 backdrop-blur-md' : 'bg-opacity-0 backdrop-blur-none pointer-events-none'
-        )}
-        onClick={() => setIsMenuOpen(false)}
-      />
-
-      <div
-        className={cn(
-          'fixed top-0 right-0 h-full w-full sm:w-[500px] bg-black z-50 transition-all duration-700 ease-in-out',
-          isMenuOpen ? 'translate-x-0 shadow-[-20px_0_60px_rgba(0,0,0,0.8)]' : 'translate-x-full shadow-none'
+          "fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 md:px-12 py-6",
+          isScrolled ? "bg-black/40 backdrop-blur-sm py-4 border-b border-white/5" : "bg-transparent"
         )}
       >
-        <div className="flex flex-col h-full">
-          <div className={cn(
-            "flex items-center justify-between px-6 sm:px-12 pt-12 pb-8 transition-all duration-700 delay-100",
-            isMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
-          )}>
-            <h2 className="text-[10px] font-sans uppercase tracking-[0.3em] text-white/40">NAVIGATION</h2>
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-afrikher-gold hover:border-afrikher-gold hover:rotate-90 transition-all duration-500"
-              aria-label="Fermer le menu"
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          {/* Wordmark Logo */}
+          <div className="flex flex-col items-start">
+            <span 
+              className="px-2 py-0.5 text-[#0A0A0A] text-[0.45rem] tracking-[0.2em] uppercase font-body font-bold rounded-[1px] mb-1 shadow-[0_1px_3px_rgba(0,0,0,0.3)] animate-gold-shine"
+              style={{
+                background: "linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%)",
+                backgroundSize: "200% 200%",
+              }}
             >
-              <X className="w-5 h-5" />
+              Magazine
+            </span>
+            <Link href="/" className="text-[1.5rem] font-display font-light tracking-[0.3em] text-[#F5F0E8] uppercase leading-none">
+              AFRIKHER
+            </Link>
+          </div>
+
+          {/* Right Side: Links & Menu Toggle */}
+          <div className="flex items-center space-x-8">
+            {/* Desktop Links */}
+            <div className="hidden md:flex items-center space-x-8">
+              <button 
+                onClick={() => setIsAboutModalOpen(true)}
+                className="text-[0.7rem] font-body font-light tracking-[0.2em] text-[#F5F0E8] uppercase hover:opacity-70 transition-opacity cursor-pointer"
+              >
+                EN SAVOIR PLUS
+              </button>
+              
+              <button 
+                onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
+                className="group flex items-center space-x-4 text-[#F5F0E8] transition-colors duration-300"
+              >
+                <span className="text-[0.7rem] font-body font-light tracking-[0.25em] uppercase group-hover:text-[#C9A84C] transition-colors duration-300">
+                  {isMegaMenuOpen ? "FERMER" : "MENU"}
+                </span>
+                <div className="flex flex-col justify-center items-end space-y-[5px] w-[18px]">
+                  <span className={cn(
+                    "block h-[1px] bg-[#F5F0E8] transition-all duration-300 group-hover:bg-[#C9A84C]",
+                    isMegaMenuOpen ? "w-[18px] translate-y-[6px] rotate-45" : "w-[18px]"
+                  )} />
+                  <span className={cn(
+                    "block h-[1px] bg-[#F5F0E8] transition-all duration-300 group-hover:bg-[#C9A84C]",
+                    isMegaMenuOpen ? "opacity-0" : "w-[18px]"
+                  )} />
+                  <span className={cn(
+                    "block h-[1px] bg-[#F5F0E8] transition-all duration-300 group-hover:bg-[#C9A84C]",
+                    isMegaMenuOpen ? "w-[18px] -translate-y-[6px] -rotate-45" : "w-[18px]"
+                  )} />
+                </div>
+              </button>
+            </div>
+
+            {/* Mobile Menu Toggle */}
+            <button 
+              className="md:hidden text-[#F5F0E8]"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <div className="flex flex-col justify-center items-end space-y-[5px] w-[24px]">
+                <span className={cn("block h-[1px] w-full bg-[#F5F0E8] transition-all", isMobileMenuOpen ? "rotate-45 translate-y-[6px]" : "")} />
+                <span className={cn("block h-[1px] w-full bg-[#F5F0E8] transition-all", isMobileMenuOpen ? "opacity-0" : "")} />
+                <span className={cn("block h-[1px] w-full bg-[#F5F0E8] transition-all", isMobileMenuOpen ? "-rotate-45 -translate-y-[6px]" : "")} />
+              </div>
             </button>
           </div>
-
-          <div className="flex-1 overflow-y-auto px-6 sm:px-12 pt-8 sm:pt-16">
-            <div className="space-y-0">
-              {navLinks.map((link, index) => (
-                <div key={link.href}>
-                  <Link
-                    href={link.href}
-                    className={cn(
-                      "group relative block py-4 sm:py-6 transition-all duration-500",
-                      isMenuOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-12"
-                    )}
-                    style={{
-                      transitionDelay: isMenuOpen ? `${150 + index * 80}ms` : '0ms',
-                    }}
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 sm:space-x-8">
-                        <span className="text-[11px] font-sans text-white/30 group-hover:text-afrikher-gold transition-colors duration-300 w-6">
-                          {link.number}
-                        </span>
-                        <span
-                          className={cn(
-                            'font-serif text-2xl sm:text-4xl transition-all duration-500 group-hover:translate-x-2',
-                            pathname === link.href
-                              ? 'text-afrikher-gold'
-                              : 'text-white group-hover:text-afrikher-gold'
-                          )}
-                          style={{ fontFamily: 'Cormorant Garamond, serif' }}
-                        >
-                          {link.label}
-                        </span>
-                      </div>
-                      <div
-                        className={cn(
-                          'w-8 sm:w-16 h-[1px] bg-afrikher-gold transition-all duration-500',
-                          pathname === link.href
-                            ? 'opacity-100 translate-x-0'
-                            : 'opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'
-                        )}
-                      />
-                    </div>
-                  </Link>
-                  {index < navLinks.length - 1 && (
-                    <div className="relative px-14">
-                      <div className="h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={cn(
-            "px-6 sm:px-12 py-8 sm:py-12 transition-all duration-700 delay-500",
-            isMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          )}>
-            <p className="text-[11px] italic text-white/30 mb-6 sm:mb-8 text-center tracking-wide" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-              L'élégance hors du commun.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[9px] text-white/40 font-sans uppercase tracking-wider">
-              <Link href="/confidentialite" className="hover:text-afrikher-gold transition-colors duration-300" onClick={() => setIsMenuOpen(false)}>
-                Confidentialité
-              </Link>
-              <span className="text-white/20">•</span>
-              <Link href="/conditions" className="hover:text-afrikher-gold transition-colors duration-300" onClick={() => setIsMenuOpen(false)}>
-                Conditions
-              </Link>
-              <span className="text-white/20">•</span>
-              <Link href="/donnees" className="hover:text-afrikher-gold transition-colors duration-300" onClick={() => setIsMenuOpen(false)}>
-                Données
-              </Link>
-            </div>
-          </div>
         </div>
-      </div>
+      </header>
 
-      {isAboutOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity duration-300"
-            onClick={() => setIsAboutOpen(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-afrikher-dark border border-afrikher-gold/20 max-w-2xl w-full p-12 relative animate-in fade-in zoom-in-95 duration-300">
-              <button
-                onClick={() => setIsAboutOpen(false)}
-                className="absolute top-6 right-6 w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/60 hover:text-afrikher-gold hover:border-afrikher-gold hover:rotate-90 transition-all duration-500"
-                aria-label="Fermer"
+      {/* About Modal */}
+      <AnimatePresence>
+        {isAboutModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAboutModalOpen(false)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#C9A84C]/20 p-8 md:p-16 overflow-y-auto max-h-[90vh]"
+            >
+              <button 
+                onClick={() => setIsAboutModalOpen(false)}
+                className="absolute top-6 right-6 text-[#F5F0E8]/40 hover:text-[#F5F0E8] transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X size={24} strokeWidth={1} />
               </button>
 
-              <h2 className="text-3xl md:text-4xl font-display text-afrikher-gold mb-6">
-                À propos d'AFRIKHER
-              </h2>
-              <h3 className="text-xl font-serif text-white mb-6 italic" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-                Le Magazine.
-              </h3>
+              <div className="flex flex-col items-center text-center">
+                <h3 className="font-display italic text-[2rem] md:text-[2.5rem] text-[#F5F0E8] mb-8">
+                  Le Magazine.
+                </h3>
+                
+                <div className="space-y-6 text-[#F5F0E8]/80 font-display font-light text-[1.1rem] md:text-[1.2rem] leading-relaxed">
+                  <p>
+                    AFRIKHER est un magazine éditorial premium dédié à l’entrepreneuriat féminin africain. 
+                    Nous mettons en lumière les femmes qui entreprennent, innovent et transforment l’Afrique d’aujourd’hui et de demain.
+                  </p>
+                  
+                  <p>
+                    À travers des portraits inspirants, des récits authentiques et des analyses business, 
+                    AFRIKHER célèbre un leadership féminin audacieux, élégant et visionnaire.
+                  </p>
+                  
+                  <p className="gold-text-tagline font-normal">
+                    Plus qu’un média, AFRIKHER est une plateforme d’inspiration, de visibilité et d’influence pour celles qui osent bâtir leur propre avenir.
+                  </p>
+                </div>
 
-              <div className="space-y-4 text-white/80 leading-relaxed">
-                <p>
-                  AFRIKHER est un magazine éditorial premium dédié à l'entrepreneuriat féminin africain.
-                  Nous mettons en lumière les femmes qui entreprennent, innovent et transforment l'Afrique
-                  d'aujourd'hui et de demain.
-                </p>
-
-                <p>
-                  À travers des portraits inspirants, des récits authentiques et des analyses business,
-                  AFRIKHER célèbre un leadership féminin audacieux, élégant et visionnaire.
-                </p>
-
-                <p>
-                  Plus qu'un média, AFRIKHER est une plateforme d'inspiration, de visibilité et d'influence
-                  pour celles qui osent bâtir leur propre avenir.
-                </p>
+                <button 
+                  onClick={() => setIsAboutModalOpen(false)}
+                  className="mt-12 border border-[#C9A84C] text-[#C9A84C] px-12 py-3 font-body text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-300"
+                >
+                  Fermer
+                </button>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Side Drawer (Mega Menu) */}
+      <AnimatePresence>
+        {isMegaMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.25 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMegaMenuOpen(false)}
+              transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
+              className="fixed inset-0 bg-black backdrop-blur-[2px] z-[120]"
+            />
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
+              className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] bg-[#080808]/97 z-[130] shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-10 py-12">
+                <span className="text-[#9A9A8A] font-body text-[0.65rem] tracking-[0.35em] uppercase">
+                  NAVIGATION
+                </span>
+                <button 
+                  onClick={() => setIsMegaMenuOpen(false)}
+                  className="group relative w-8 h-8 flex items-center justify-center border border-white/20 rounded-full text-[#F5F0E8] hover:border-[#C9A84C] hover:text-[#C9A84C] transition-all duration-300"
+                >
+                  <span className="text-[1.2rem] leading-none mt-[-2px]">×</span>
+                </button>
+              </div>
+
+              {/* Navigation Items */}
+              <nav className="flex-1 flex flex-col justify-center">
+                {navLinks.map((link, idx) => {
+                  const isActive = pathname === link.href;
+                  const delays = [0.15, 0.22, 0.29, 0.36, 0.43, 0.50, 0.57, 0.64];
+                  
+                  return (
+                    <motion.div
+                      key={link.id}
+                      initial={{ opacity: 0, y: 25 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        delay: delays[idx], 
+                        duration: 0.7, 
+                        ease: [0.33, 1, 0.68, 1] 
+                      }}
+                      className="group relative"
+                    >
+                      {/* Delimiter Line - Refined Gray Style */}
+                      <div className="absolute top-0 left-[4.5rem] right-[15%] h-[1px] bg-[#9A9A8A]/30 transition-all duration-500 group-hover:bg-[#9A9A8A]/60 group-hover:right-[10%]" />
+                      
+                      <Link
+                        href={link.href}
+                        onClick={() => setIsMegaMenuOpen(false)}
+                        className="flex items-center px-10 py-5 md:py-6 transition-all duration-500 ease-[0.33,1,0.68,1] group-hover:translate-x-[10px]"
+                      >
+                        <span className={cn(
+                          "font-body text-[0.7rem] tracking-[0.1em] mr-8 transition-colors duration-300",
+                          isActive ? "text-[#C9A84C]" : "text-[#9A9A8A] group-hover:text-[#C9A84C]"
+                        )}>
+                          {link.id}
+                        </span>
+                        <span className={cn(
+                          "font-display font-light text-[1.8rem] md:text-[2.4rem] leading-none transition-colors duration-300",
+                          isActive ? "text-[#C9A84C]" : "text-[#F5F0E8] group-hover:text-[#C9A84C]"
+                        )}>
+                          {link.name}
+                        </span>
+                        {isActive && (
+                          <span className="ml-6 text-[#C9A84C] font-display text-[1.5rem] leading-none">——</span>
+                        )}
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+                <div className="relative h-[1px]">
+                  <div className="absolute top-0 left-[4.5rem] right-[15%] h-[1px] bg-[#9A9A8A]/30" />
+                </div>
+              </nav>
+
+              {/* Footer */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6, duration: 0.8 }}
+                className="border-t border-white/5 px-10 py-8"
+              >
+                <p className="font-display italic text-[0.9rem] text-[#9A9A8A]">
+                  L'élégance hors du commun.
+                </p>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-[110] bg-[#0A0A0A] p-12 flex flex-col items-center justify-center space-y-8"
+          >
+            <button 
+              className="absolute top-8 right-8 text-[#F5F0E8]"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <X size={32} strokeWidth={1} />
+            </button>
+            {navLinks.map((link) => (
+              <Link
+                key={link.id}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-3xl font-display font-light text-[#C9A84C] hover:text-[#F5F0E8] transition-colors uppercase tracking-tight"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

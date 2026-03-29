@@ -1,130 +1,130 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { ShoppingBag } from 'lucide-react';
-import AfrikherCard from '@/components/ui/afrikher-card';
-import { createClient } from '@/lib/supabase/client';
+import { useState } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import ProductCard from "@/components/boutique/ProductCard";
+import { Search, Filter } from "lucide-react";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  images: string[];
-  type: string;
-}
+const types = ["Tous", "Livre", "Fleurs", "Accessoire", "Autre"];
+
+const products = [
+  {
+    id: "1",
+    name: "L'Art de l'Ambition",
+    price: "45.00",
+    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=1974&auto=format&fit=crop",
+    type: "Livre"
+  },
+  {
+    id: "2",
+    name: "Bouquet 'Souveraine'",
+    price: "85.00",
+    image: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?q=80&w=2080&auto=format&fit=crop",
+    type: "Fleurs"
+  },
+  {
+    id: "3",
+    name: "Agenda AFRIKHER 2026",
+    price: "35.00",
+    image: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?q=80&w=2068&auto=format&fit=crop",
+    type: "Accessoire"
+  },
+  {
+    id: "4",
+    name: "Stylo Plume 'Or Noir'",
+    price: "120.00",
+    image: "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?q=80&w=1964&auto=format&fit=crop",
+    type: "Accessoire"
+  },
+  {
+    id: "5",
+    name: "Coffret 'Éclat d'Afrique'",
+    price: "150.00",
+    image: "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=2080&auto=format&fit=crop",
+    type: "Autre"
+  },
+  {
+    id: "6",
+    name: "L'Héritage des Reines",
+    price: "55.00",
+    image: "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=1974&auto=format&fit=crop",
+    type: "Livre"
+  }
+];
 
 export default function BoutiquePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [activeType, setActiveType] = useState("Tous");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const { data } = await supabase
-        .from('products')
-        .select('id, name, price, images, type')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (data) setProducts(data);
-      setLoading(false);
-    };
-
-    fetchProducts();
-  }, []);
-
-  const filteredProducts = selectedType
-    ? products.filter((p) => p.type === selectedType)
-    : products;
-
-  const types = [
-    { value: 'book', label: 'Livres' },
-    { value: 'bouquet', label: 'Bouquets' },
-    { value: 'other', label: 'Autres' },
-  ];
+  const filteredProducts = products.filter(product => {
+    const matchesType = activeType === "Tous" || product.type === activeType;
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesType && matchesSearch;
+  });
 
   return (
-    <div className="min-h-screen bg-afrikher-cream">
-      <section className="bg-afrikher-dark text-afrikher-cream py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="font-display text-5xl md:text-6xl font-bold mb-6 text-center">
-            Boutique
-          </h1>
-          <p className="font-sans text-lg text-afrikher-gray text-center max-w-2xl mx-auto">
-            Découvrez notre sélection exclusive de livres inspirants et de bouquets élégants
+    <main className="min-h-screen bg-brand-cream text-brand-dark">
+      <Navbar />
+      
+      {/* Hero */}
+      <section className="pt-40 pb-20 px-6 bg-brand-dark text-brand-cream">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">La Boutique</h1>
+          <p className="text-brand-gold italic text-xl font-display max-w-2xl mx-auto">
+            L'excellence à portée de main. Une sélection exclusive AFRIKHER.
           </p>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex flex-wrap gap-3 mb-8">
-          <button
-            onClick={() => setSelectedType(null)}
-            className={`px-4 py-2 font-sans text-sm uppercase tracking-wide transition-all duration-300 ${
-              selectedType === null
-                ? 'bg-afrikher-gold text-afrikher-dark'
-                : 'bg-white text-afrikher-dark hover:bg-afrikher-gold'
-            }`}
-          >
-            Tous
-          </button>
-          {types.map((type) => (
-            <button
-              key={type.value}
-              onClick={() => setSelectedType(type.value)}
-              className={`px-4 py-2 font-sans text-sm uppercase tracking-wide transition-all duration-300 ${
-                selectedType === type.value
-                  ? 'bg-afrikher-gold text-afrikher-dark'
-                  : 'bg-white text-afrikher-dark hover:bg-afrikher-gold'
-              }`}
-            >
-              {type.label}
-            </button>
-          ))}
-        </div>
+      {/* Filters & Search */}
+      <section className="py-12 px-6 border-b border-brand-charcoal/10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-wrap justify-center gap-6">
+            {types.map(t => (
+              <button
+                key={t}
+                onClick={() => setActiveType(t)}
+                className={`text-sm uppercase tracking-widest pb-1 border-b-2 transition-all ${
+                  activeType === t ? "border-brand-gold text-brand-gold" : "border-transparent text-brand-gray hover:text-brand-dark"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-white h-80 mb-4"></div>
-              </div>
-            ))}
+          <div className="relative w-full md:w-64">
+            <input
+              type="text"
+              placeholder="Rechercher un produit..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent border-b border-brand-charcoal/30 py-2 pl-2 pr-8 focus:outline-none focus:border-brand-gold transition-colors"
+            />
+            <Search size={18} className="absolute right-0 top-1/2 -translate-y-1/2 text-brand-gray" />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {filteredProducts.map((product) => (
-              <Link key={product.id} href={`/boutique/${product.id}`}>
-                <AfrikherCard className="group cursor-pointer hover:shadow-xl transition-all duration-300">
-                  <div className="relative h-80 overflow-hidden bg-afrikher-cream">
-                    <img
-                      src={product.images[0] || '/images/placeholder.jpg'}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-afrikher-dark to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-6">
-                      <div className="flex items-center space-x-2 text-afrikher-gold">
-                        <ShoppingBag className="w-5 h-5" />
-                        <span className="font-sans text-sm uppercase tracking-wide">Voir le produit</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="font-display text-xl font-semibold text-afrikher-dark mb-2 group-hover:text-afrikher-gold transition-colors duration-300">
-                      {product.name}
-                    </h3>
-                    <p className="font-sans text-2xl font-bold text-afrikher-gold">
-                      {product.price.toFixed(2)} €
-                    </p>
-                  </div>
-                </AfrikherCard>
-              </Link>
-            ))}
-          </div>
-        )}
+        </div>
       </section>
-    </div>
+
+      {/* Grid */}
+      <section className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          {filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {filteredProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20">
+              <p className="text-brand-gray italic">Aucun produit ne correspond à votre recherche.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Footer />
+    </main>
   );
 }

@@ -1,122 +1,103 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Calendar } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import AfrikherCard from '@/components/ui/afrikher-card';
-import AfrikherBadge from '@/components/ui/afrikher-badge';
-import AfrikherButton from '@/components/ui/afrikher-button';
-import { createClient } from '@/lib/supabase/client';
+import Link from "next/link";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
-interface Article {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  cover_image: string;
-  published_at: string;
-  categories: { name: string };
-}
+const articles = [
+  {
+    id: "1",
+    title: "L'ascension de l'entrepreneuriat féminin en Afrique de l'Ouest",
+    excerpt: "Comment les femmes redéfinissent les codes du business à Dakar et Abidjan.",
+    category: "Business",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop",
+    date: "24 Mars 2026",
+    slug: "entrepreneuriat-feminin-afrique-ouest",
+    gridClass: "md:col-span-2 aspect-[16/10]"
+  },
+  {
+    id: "2",
+    title: "Mode & Identité : Le retour du pagne tissé",
+    excerpt: "Exploration des racines textiles africaines.",
+    category: "Style",
+    image: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=1974&auto=format&fit=crop",
+    date: "20 Mars 2026",
+    slug: "mode-identite-pagne-tisse",
+    gridClass: "md:col-span-1 aspect-[3/4]"
+  },
+  {
+    id: "3",
+    title: "Investir dans la tech : Les secteurs porteurs",
+    excerpt: "Où se cachent les prochaines licornes africaines ?",
+    category: "Finance",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop",
+    date: "15 Mars 2026",
+    slug: "investir-tech-afrique-2026",
+    gridClass: "md:col-span-1 aspect-[8/9]"
+  },
+  {
+    id: "4",
+    title: "Gastronomie : Le renouveau des saveurs ancestrales",
+    excerpt: "Quand la tradition rencontre la modernité culinaire.",
+    category: "Lifestyle",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2070&auto=format&fit=crop",
+    date: "12 Mars 2026",
+    slug: "gastronomie-saveurs-ancestrales",
+    gridClass: "md:col-span-2 aspect-[16/9]"
+  }
+];
 
 export default function FeaturedArticles() {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    const fetchArticles = async () => {
-      const { data } = await supabase
-        .from('articles')
-        .select('id, title, slug, excerpt, cover_image, published_at, categories(name)')
-        .eq('status', 'published')
-        .eq('featured', true)
-        .order('published_at', { ascending: false })
-        .limit(3);
-
-      if (data) {
-        setArticles(data as any);
-      }
-      setLoading(false);
-    };
-
-    fetchArticles();
-  }, []);
-
-  if (loading) {
-    return (
-      <section className="py-24 bg-afrikher-cream">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-afrikher-dark mb-4">
-              Articles À La Une
-            </h2>
-            <div className="w-24 h-1 bg-afrikher-gold mx-auto"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-afrikher-gray h-64 mb-4"></div>
-                <div className="h-4 bg-afrikher-gray mb-2"></div>
-                <div className="h-4 bg-afrikher-gray w-2/3"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="py-24 bg-afrikher-cream">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="font-display text-4xl md:text-5xl font-bold text-afrikher-dark mb-4">
-            Articles À La Une
-          </h2>
-          <div className="w-24 h-1 bg-afrikher-gold mx-auto"></div>
+    <section className="py-24 px-6 md:px-12 bg-brand-cream text-brand-dark">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6 border-b border-brand-charcoal/10 pb-8">
+          <div className="max-w-2xl">
+            <span className="text-brand-gold font-body font-bold uppercase tracking-[0.3em] text-xs mb-4 block">Le Journal</span>
+            <h2 className="text-4xl md:text-6xl font-display font-bold leading-tight tracking-tighter">
+              À la une cette semaine
+            </h2>
+          </div>
+          <Link href="/magazine" className="text-brand-dark font-body font-bold uppercase tracking-widest text-xs border-b-2 border-brand-gold pb-1 hover:text-brand-gold transition-all">
+            Tout le journal
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          {articles.map((article) => (
-            <Link key={article.id} href={`/journal/${article.slug}`}>
-              <AfrikherCard className="group cursor-pointer hover:shadow-xl transition-all duration-300">
-                <div className="relative h-64 overflow-hidden">
-                  <img
-                    src={article.cover_image || '/images/placeholder.jpg'}
-                    alt={article.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <AfrikherBadge variant="gold">
-                      {(article.categories as any)?.name || 'Article'}
-                    </AfrikherBadge>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center text-xs text-afrikher-gray mb-3">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {format(new Date(article.published_at), 'd MMMM yyyy', { locale: fr })}
-                  </div>
-                  <h3 className="font-display text-xl font-semibold text-afrikher-dark mb-3 group-hover:text-afrikher-gold transition-colors duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {articles.map((article, index) => (
+            <motion.div
+              key={article.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1, duration: 0.8 }}
+              className={cn("group relative overflow-hidden bg-brand-charcoal", article.gridClass)}
+            >
+              <Link href={`/magazine/${article.slug}`} className="block w-full h-full">
+                <img
+                  src={article.image}
+                  alt={article.title}
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                  referrerPolicy="no-referrer"
+                />
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+                
+                {/* Content Overlay */}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+                  <span className="text-brand-gold font-body font-bold uppercase tracking-widest text-[10px] mb-2 block">
+                    {article.category}
+                  </span>
+                  <h3 className="text-xl md:text-3xl font-display font-bold text-white leading-tight mb-2 group-hover:underline decoration-brand-gold underline-offset-4 transition-all">
                     {article.title}
                   </h3>
-                  <p className="font-sans text-sm text-afrikher-gray line-clamp-3">
+                  <p className="text-white/70 text-xs md:text-sm font-body line-clamp-2 max-w-lg opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
                     {article.excerpt}
                   </p>
                 </div>
-              </AfrikherCard>
-            </Link>
+              </Link>
+            </motion.div>
           ))}
-        </div>
-
-        <div className="text-center">
-          <Link href="/journal">
-            <AfrikherButton variant="dark" size="lg">
-              Voir Tous Les Articles
-            </AfrikherButton>
-          </Link>
         </div>
       </div>
     </section>

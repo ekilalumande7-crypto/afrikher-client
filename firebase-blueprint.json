@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "profiles": {
+      "title": "User Profile",
+      "description": "Extended user information linked to auth.users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "full_name": { "type": "string" },
+        "avatar_url": { "type": "string" },
+        "role": { "type": "string", "enum": ["reader", "admin", "partner"] },
+        "is_blocked": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id"]
+    },
+    "articles": {
+      "title": "Article",
+      "description": "Editorial content for the journal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "content": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "cover_image": { "type": "string" },
+        "category": { "type": "string" },
+        "author_id": { "type": "string", "format": "uuid" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
+        "featured": { "type": "boolean" },
+        "published_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "slug", "content"]
+    },
+    "products": {
+      "title": "Product",
+      "description": "Boutique items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "stock": { "type": "integer" },
+        "type": { "type": "string", "enum": ["book", "bouquet", "other"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] }
+      },
+      "required": ["id", "name", "price"]
+    }
+  },
+  "firestore": {
+    "notifications": {
+      "schema": "object",
+      "description": "Push notification tokens and history"
+    }
+  }
+}

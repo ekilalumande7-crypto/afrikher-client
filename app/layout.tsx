@@ -1,22 +1,33 @@
-'use client';
+import type { Metadata } from "next";
+import { Cormorant_Garamond, Montserrat } from "next/font/google";
+import "./globals.css";
 
-import './globals.css';
-import Navbar from '@/components/layout/Navbar';
-import { usePathname } from 'next/navigation';
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-cormorant",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-montserrat",
+});
+
+export const metadata: Metadata = {
+  title: "AFRIKHER | L'élégance hors du commun. Le Business au féminin.",
+  description: "Magazine premium pour les femmes entrepreneures africaines et la diaspora.",
+};
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const isAuthPage = pathname?.startsWith('/auth');
-
+}>) {
   return (
-    <html lang="fr">
-      <body className="antialiased h-screen bg-afrikher-dark">
-        {!isAuthPage && <Navbar />}
-        <main className="h-full">{children}</main>
+    <html lang="fr" className={`${cormorant.variable} ${montserrat.variable}`}>
+      <body className="antialiased" style={{ backgroundColor: "#0A0A0A", margin: 0, padding: 0 }}>
+        {children}
       </body>
     </html>
   );

@@ -1,143 +1,154 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { User, ShoppingBag, CreditCard, LogOut } from 'lucide-react';
-import AfrikherButton from '@/components/ui/afrikher-button';
-import AfrikherCard from '@/components/ui/afrikher-card';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import { motion } from "motion/react";
+import { User, Package, CreditCard, LogOut, Settings, Bell } from "lucide-react";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [subscription, setSubscription] = useState<any>(null);
-  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
-    setUser({ email: 'client@afrikher.com' });
-    setProfile({ full_name: 'Client AFRIKHER', role: 'client' });
-    setLoading(false);
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth/login");
+      } else {
+        setUser(user);
+      }
+      setLoading(false);
+    };
+    fetchUser();
   }, [router]);
 
   const handleLogout = async () => {
-    router.push('/');
+    await supabase.auth.signOut();
+    router.push("/");
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-afrikher-cream flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-afrikher-gold border-t-transparent"></div>
+      <div className="min-h-screen bg-brand-dark flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-brand-gold border-t-transparent animate-spin rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-afrikher-cream">
-      <section className="bg-afrikher-dark text-afrikher-cream py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">
-            Bonjour, {profile?.full_name || 'Bienvenue'}
-          </h1>
-          <p className="font-sans text-afrikher-gray">Gérez votre compte et vos abonnements</p>
-        </div>
-      </section>
+    <main className="min-h-screen bg-brand-cream text-brand-dark">
+      <Navbar />
+      
+      <section className="pt-40 pb-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start gap-12">
+            
+            {/* Sidebar */}
+            <aside className="w-full md:w-64 space-y-2">
+              <div className="p-6 bg-brand-dark text-brand-cream mb-8 border border-brand-gold/20">
+                <div className="w-16 h-16 bg-brand-gold rounded-full flex items-center justify-center text-brand-dark text-2xl font-bold mb-4">
+                  {user?.user_metadata?.full_name?.charAt(0) || "U"}
+                </div>
+                <h3 className="font-display text-xl font-bold truncate">{user?.user_metadata?.full_name || "Utilisateur"}</h3>
+                <p className="text-brand-gray text-xs truncate">{user?.email}</p>
+              </div>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <AfrikherCard className="p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-afrikher-gold rounded-full flex items-center justify-center mr-4">
-                <User className="w-6 h-6 text-afrikher-dark" />
-              </div>
-              <div>
-                <h3 className="font-display text-xl font-semibold text-afrikher-dark">Profil</h3>
-              </div>
-            </div>
-            <p className="font-sans text-sm text-afrikher-gray mb-2">
-              <strong>Email:</strong> {user?.email}
-            </p>
-            <p className="font-sans text-sm text-afrikher-gray">
-              <strong>Rôle:</strong> {profile?.role || 'reader'}
-            </p>
-          </AfrikherCard>
+              <button className="w-full flex items-center space-x-3 p-4 bg-brand-dark text-brand-gold text-sm uppercase tracking-widest font-bold">
+                <User size={18} />
+                <span>Profil</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
+                <Package size={18} />
+                <span>Mes Commandes</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
+                <CreditCard size={18} />
+                <span>Abonnement</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
+                <Bell size={18} />
+                <span>Notifications</span>
+              </button>
+              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
+                <Settings size={18} />
+                <span>Paramètres</span>
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center space-x-3 p-4 hover:bg-red-50 text-red-500 text-sm uppercase tracking-widest transition-colors mt-8"
+              >
+                <LogOut size={18} />
+                <span>Déconnexion</span>
+              </button>
+            </aside>
 
-          <AfrikherCard className="p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-afrikher-gold rounded-full flex items-center justify-center mr-4">
-                <CreditCard className="w-6 h-6 text-afrikher-dark" />
-              </div>
-              <div>
-                <h3 className="font-display text-xl font-semibold text-afrikher-dark">Abonnement</h3>
-              </div>
-            </div>
-            {subscription?.status === 'active' ? (
-              <>
-                <p className="font-sans text-sm text-afrikher-gray mb-2">
-                  <strong>Plan:</strong> {subscription.plan === 'monthly' ? 'Mensuel' : 'Annuel'}
-                </p>
-                <p className="font-sans text-sm text-afrikher-gray">
-                  <strong>Fin:</strong> {new Date(subscription.current_period_end).toLocaleDateString('fr-FR')}
-                </p>
-              </>
-            ) : (
-              <p className="font-sans text-sm text-afrikher-gray">Aucun abonnement actif</p>
-            )}
-          </AfrikherCard>
-
-          <AfrikherCard className="p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-afrikher-gold rounded-full flex items-center justify-center mr-4">
-                <ShoppingBag className="w-6 h-6 text-afrikher-dark" />
-              </div>
-              <div>
-                <h3 className="font-display text-xl font-semibold text-afrikher-dark">Commandes</h3>
-              </div>
-            </div>
-            <p className="font-sans text-sm text-afrikher-gray">
-              {orders.length} commande{orders.length > 1 ? 's' : ''}
-            </p>
-          </AfrikherCard>
-        </div>
-
-        {orders.length > 0 && (
-          <AfrikherCard className="p-6">
-            <h3 className="font-display text-2xl font-semibold text-afrikher-dark mb-6">
-              Dernières Commandes
-            </h3>
-            <div className="space-y-4">
-              {orders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between py-4 border-b border-afrikher-gray"
-                >
-                  <div>
-                    <p className="font-sans font-medium text-afrikher-dark">
-                      Commande #{order.id.substring(0, 8)}
-                    </p>
-                    <p className="font-sans text-sm text-afrikher-gray">
-                      {new Date(order.created_at).toLocaleDateString('fr-FR')}
-                    </p>
+            {/* Content */}
+            <div className="flex-1 space-y-12">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
+              >
+                <h2 className="text-3xl font-display font-bold mb-8">Informations Personnelles</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest text-brand-gray font-bold">Nom complet</label>
+                    <p className="border-b border-brand-charcoal/10 py-2 text-brand-dark">{user?.user_metadata?.full_name}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-sans font-bold text-afrikher-gold">{order.total.toFixed(2)} €</p>
-                    <p className="font-sans text-sm text-afrikher-gray capitalize">{order.status}</p>
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase tracking-widest text-brand-gray font-bold">Email</label>
+                    <p className="border-b border-brand-charcoal/10 py-2 text-brand-dark">{user?.email}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </AfrikherCard>
-        )}
+                <button className="mt-10 px-8 py-3 bg-brand-dark text-brand-cream text-xs uppercase tracking-widest hover:bg-brand-gold hover:text-brand-dark transition-all">
+                  Modifier le profil
+                </button>
+              </motion.div>
 
-        <div className="mt-8 text-center">
-          <AfrikherButton variant="dark" size="lg" onClick={handleLogout}>
-            <LogOut className="w-5 h-5 mr-2" />
-            Se déconnecter
-          </AfrikherButton>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
+                >
+                  <h3 className="text-2xl font-display font-bold mb-6">Abonnement Actuel</h3>
+                  <div className="p-6 bg-brand-cream border border-brand-gold/20">
+                    <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-2">Plan Gratuit</p>
+                    <p className="text-brand-gray text-sm mb-6">Accès limité aux articles publics.</p>
+                    <Link href="/abonnement" className="text-xs uppercase tracking-widest text-brand-dark font-bold border-b border-brand-dark pb-1">
+                      Passer au Premium
+                    </Link>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
+                >
+                  <h3 className="text-2xl font-display font-bold mb-6">Dernière Commande</h3>
+                  <div className="text-center py-8">
+                    <p className="text-brand-gray text-sm italic">Vous n'avez pas encore passé de commande.</p>
+                    <Link href="/boutique" className="inline-block mt-6 text-xs uppercase tracking-widest text-brand-gold font-bold border-b border-brand-gold pb-1">
+                      Visiter la boutique
+                    </Link>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
-    </div>
+
+      <Footer />
+    </main>
   );
 }
