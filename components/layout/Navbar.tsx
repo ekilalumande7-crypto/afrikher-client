@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -108,7 +107,7 @@ export default function Navbar() {
       </header>
 
       {/* About Modal */}
-      <AnimatePresence>
+      <>
         {isAboutModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
             <div
@@ -157,10 +156,10 @@ export default function Navbar() {
             </div>
           </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* Desktop Side Drawer (Mega Menu) */}
-      <AnimatePresence>
+      <>
         {isMegaMenuOpen && (
           <>
             {/* Backdrop */}
@@ -239,10 +238,10 @@ export default function Navbar() {
             </div>
           </>
         )}
-      </AnimatePresence>
+      </>
 
       {/* Mobile Menu Overlay */}
-      <AnimatePresence>
+      <>
         {isMobileMenuOpen && (
           <div
             className="fixed inset-0 z-[110] bg-[#0A0A0A] p-12 flex flex-col items-center justify-center space-y-8"
@@ -265,7 +264,7 @@ export default function Navbar() {
             ))}
           </div>
         )}
-      </AnimatePresence>
+      </>
     </>
   );
 }
