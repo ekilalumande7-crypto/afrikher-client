@@ -1,11 +1,8 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { motion } from "motion/react";
 import { Mail, MapPin, Phone } from "lucide-react";
 
 export default function ContactPage() {
@@ -33,10 +30,7 @@ export default function ContactPage() {
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16">
           <div className="space-y-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+            <div
               className="space-y-8"
             >
               <h2 className="text-3xl font-display font-bold">Restons en contact</h2>
@@ -44,7 +38,7 @@ export default function ContactPage() {
                 AFRIKHER est toujours ouvert aux échanges, collaborations et nouvelles perspectives.
                 N'hésitez pas à nous écrire.
               </p>
-            </motion.div>
+            </div>
 
             <div className="space-y-6">
               <div className="flex items-start space-x-4">
@@ -72,11 +66,7 @@ export default function ContactPage() {
             </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
+          <div
           >
             {submitted ? (
               <div className="bg-brand-dark text-brand-cream p-12 text-center">
@@ -133,7 +123,7 @@ export default function ContactPage() {
                 </button>
               </form>
             )}
-          </motion.div>
+          </div>
         </div>
       </section>
 

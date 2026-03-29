@@ -1,11 +1,8 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
-import { motion } from "motion/react";
 
 const rubriques = [
   {
@@ -57,12 +54,8 @@ export default function RubriquesPage() {
       <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {rubriques.map((rubrique, index) => (
-            <motion.div
+            <div
               key={rubrique.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="group"
             >
               <Link href={`/magazine?category=${rubrique.id}`}>
@@ -79,7 +72,7 @@ export default function RubriquesPage() {
                 </div>
                 <p className="text-brand-gray text-sm leading-relaxed">{rubrique.description}</p>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>

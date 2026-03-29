@@ -1,13 +1,10 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/boutique/ProductCard";
-import { motion } from "motion/react";
 import { ShoppingBag, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 

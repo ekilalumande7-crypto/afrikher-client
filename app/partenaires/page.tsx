@@ -1,10 +1,7 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { motion } from "motion/react";
 import Link from "next/link";
 
 const partners = [
@@ -42,12 +39,8 @@ export default function PartenairesPage() {
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
           {partners.map((partner, index) => (
-            <motion.div
+            <div
               key={partner.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.15 }}
               className="border border-brand-charcoal/10 p-10 text-center hover:border-brand-gold/40 transition-colors duration-300"
             >
               <div className="w-16 h-16 mx-auto mb-6 bg-brand-dark rounded-full flex items-center justify-center">
@@ -58,7 +51,7 @@ export default function PartenairesPage() {
               <h3 className="text-xl font-display font-bold mb-2">{partner.name}</h3>
               <span className="text-brand-gold text-xs uppercase tracking-widest block mb-4">{partner.role}</span>
               <p className="text-brand-gray text-sm leading-relaxed">{partner.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>

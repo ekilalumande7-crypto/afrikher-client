@@ -1,13 +1,10 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ArticleCard from "@/components/articles/ArticleCard";
-import { motion } from "motion/react";
 import { Share2, Facebook, Twitter, Linkedin } from "lucide-react";
 
 const articles = [

@@ -1,12 +1,9 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { motion } from "motion/react";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 
 export default function RegisterPage() {
@@ -52,9 +49,7 @@ export default function RegisterPage() {
           <p className="text-brand-gray text-sm">Créez votre compte AFRIKHER</p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="bg-brand-charcoal p-8 border border-brand-gold/20 shadow-2xl"
         >
           <form onSubmit={handleRegister} className="space-y-6">
@@ -120,7 +115,7 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
-        </motion.div>
+        </div>
 
         <p className="text-center mt-8 text-brand-gray text-sm">
           Déjà un compte ?{" "}

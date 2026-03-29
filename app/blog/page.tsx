@@ -1,11 +1,8 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
-import { motion } from "motion/react";
 import { Clock } from "lucide-react";
 
 const posts = [
@@ -55,12 +52,8 @@ export default function BlogPage() {
       <section className="py-24 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
           {posts.map((post, index) => (
-            <motion.article
+            <article
               key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="group"
             >
               <Link href={`/magazine/${post.id}`}>
@@ -83,7 +76,7 @@ export default function BlogPage() {
                 <p className="text-brand-gray text-sm leading-relaxed line-clamp-3">{post.excerpt}</p>
                 <span className="block mt-4 text-xs text-brand-gray uppercase tracking-widest">{post.date}</span>
               </Link>
-            </motion.article>
+            </article>
           ))}
         </div>
       </section>

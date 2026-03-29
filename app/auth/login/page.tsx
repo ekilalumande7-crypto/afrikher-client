@@ -1,12 +1,9 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { motion } from "motion/react";
 import { Mail, Lock, ArrowRight, Github } from "lucide-react";
 
 export default function LoginPage() {
@@ -55,9 +52,7 @@ export default function LoginPage() {
           <p className="text-brand-gray text-sm">Connectez-vous à votre espace personnel</p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="bg-brand-charcoal p-8 border border-brand-gold/20 shadow-2xl"
         >
           <form onSubmit={handleLogin} className="space-y-6">
@@ -130,7 +125,7 @@ export default function LoginPage() {
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
             <span className="text-sm uppercase tracking-widest">Google</span>
           </button>
-        </motion.div>
+        </div>
 
         <p className="text-center mt-8 text-brand-gray text-sm">
           Pas encore de compte ?{" "}

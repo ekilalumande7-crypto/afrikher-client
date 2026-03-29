@@ -1,13 +1,10 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Search, ChevronRight, ChevronLeft, Clock } from "lucide-react";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 const categories = ["Tous", "Business", "Style", "Finance", "Culture", "Lifestyle"];
@@ -139,9 +136,7 @@ export default function JournalPage() {
             </div>
             {/* Floating Card */}
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full max-w-md p-4 hidden md:block">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+              <div
                 className="bg-white p-8 shadow-2xl rounded-lg border border-brand-charcoal/5"
               >
                 <div className="flex items-center space-x-3 mb-4">
@@ -169,7 +164,7 @@ export default function JournalPage() {
                 <div className="mt-6 pt-6 border-t border-brand-charcoal/5 text-[10px] text-brand-gray uppercase tracking-widest">
                   {featuredMain.date}
                 </div>
-              </motion.div>
+              </div>
             </div>
             {/* Mobile Content */}
             <div className="mt-6 md:hidden">

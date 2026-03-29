@@ -1,14 +1,11 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { motion } from "motion/react";
 import { User, Package, CreditCard, LogOut, Settings, Bell } from "lucide-react";
 
 export default function DashboardPage() {
@@ -91,9 +88,7 @@ export default function DashboardPage() {
 
             {/* Content */}
             <div className="flex-1 space-y-12">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+              <div
                 className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
               >
                 <h2 className="text-3xl font-display font-bold mb-8">Informations Personnelles</h2>
@@ -110,13 +105,10 @@ export default function DashboardPage() {
                 <button className="mt-10 px-8 py-3 bg-brand-dark text-brand-cream text-xs uppercase tracking-widest hover:bg-brand-gold hover:text-brand-dark transition-all">
                   Modifier le profil
                 </button>
-              </motion.div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
+                <div
                   className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
                 >
                   <h3 className="text-2xl font-display font-bold mb-6">Abonnement Actuel</h3>
@@ -127,12 +119,9 @@ export default function DashboardPage() {
                       Passer au Premium
                     </Link>
                   </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
+                <div
                   className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
                 >
                   <h3 className="text-2xl font-display font-bold mb-6">Dernière Commande</h3>
@@ -142,7 +131,7 @@ export default function DashboardPage() {
                       Visiter la boutique
                     </Link>
                   </div>
-                </motion.div>
+                </div>
               </div>
             </div>
 
