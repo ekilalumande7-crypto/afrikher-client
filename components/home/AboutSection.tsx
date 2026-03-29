@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -10,11 +9,7 @@ export default function AboutSection() {
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-center">
           {/* Image Column */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+          <div
             className="relative order-2 lg:order-1"
           >
             <div className="aspect-[4/5] overflow-hidden rounded-2xl shadow-2xl relative z-10">
@@ -30,11 +25,7 @@ export default function AboutSection() {
             <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-brand-gold/5 rounded-full blur-3xl z-0" />
             
             {/* Floating Quote */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.5 }}
+            <div
               className="absolute -bottom-6 -left-6 md:-left-12 bg-white p-6 md:p-8 shadow-xl rounded-lg z-20 max-w-xs border border-brand-charcoal/5"
             >
               <p className="font-display italic text-lg md:text-xl text-brand-dark leading-tight">
@@ -44,14 +35,11 @@ export default function AboutSection() {
                 <div className="w-8 h-[1px] bg-brand-gold" />
                 <span className="text-[10px] uppercase tracking-widest font-bold text-brand-gold">Manifeste AFRIKHER</span>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {/* Text Column */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+          <div
             className="space-y-10 order-1 lg:order-2"
           >
             <div className="space-y-4">
@@ -92,7 +80,7 @@ export default function AboutSection() {
                 <span className="text-[10px] text-brand-gray font-bold uppercase tracking-widest">Rejoignez +10k lectrices</span>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

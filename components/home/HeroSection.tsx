@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -56,20 +55,14 @@ export default function HeroSection() {
         className="absolute bottom-[15vh] left-[8%] md:left-[12%] max-w-[800px] flex flex-col items-start text-left z-10"
         style={{ position: "absolute", bottom: "15vh", left: "10%", maxWidth: "800px", zIndex: 10 }}
       >
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4, duration: 1 }}
+        <div
           className="mb-4"
         >
           <span className="text-[0.65rem] text-[#9A9A8A] tracking-[0.3em] uppercase font-body">
             — MAGAZINE ÉDITORIAL PREMIUM
           </span>
-        </motion.div>
-        <motion.h1 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: "easeOut" }}
+        </div>
+        <h1
           className="hero-title text-[10vw] md:text-[7rem] uppercase leading-none mb-2 animate-gold-shine"
           style={{
             background: "linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%)",
@@ -80,21 +73,15 @@ export default function HeroSection() {
           }}
         >
           AFRIKHER
-        </motion.h1>
+        </h1>
         
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 1 }}
+        <p
           className="font-display italic font-light text-[1.4rem] text-[#F5F0E8] tracking-[0.05em] mb-4"
         >
           Bienvenue dans l'univers AFRIKHER
-        </motion.p>
+        </p>
 
-        <motion.h2
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.8, duration: 1 }}
+        <h2
           className="font-display font-normal text-[2rem] md:text-[2.8rem] leading-tight animate-gold-shine"
           style={{
             background: "linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%)",
@@ -105,23 +92,17 @@ export default function HeroSection() {
           }}
         >
           Le Business au féminin
-        </motion.h2>
+        </h2>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9, duration: 1 }}
+        <p
           className="font-body text-[0.9rem] font-light text-[#F5F0E8]/70 max-w-[480px] mt-4 leading-[1.8]"
         >
           Le magazine de référence dédié aux femmes africaines 
           qui entreprennent, innovent et inspirent. 
           Des portraits, des récits, une vision.
-        </motion.p>
+        </p>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 1 }}
+        <div
           className="flex flex-col sm:flex-row gap-6 mt-10"
         >
           <Link
@@ -136,7 +117,7 @@ export default function HeroSection() {
           >
             REJOINDRE LA COMMUNAUTÉ
           </Link>
-        </motion.div>
+        </div>
       </div>
 
       {/* Minimal Footer */}

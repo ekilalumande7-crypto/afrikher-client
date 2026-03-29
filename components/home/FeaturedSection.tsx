@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -48,12 +47,8 @@ export default function FeaturedSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {ARTICLES.map((article, i) => (
-            <motion.div
+            <div
               key={article.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: i * 0.2 }}
               className="group cursor-pointer"
             >
               <div className="relative aspect-[4/5] overflow-hidden mb-6">
@@ -74,7 +69,7 @@ export default function FeaturedSection() {
               <h3 className="text-2xl font-display font-medium text-brand-dark group-hover:text-brand-gold transition-colors duration-300 leading-snug">
                 {article.title}
               </h3>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

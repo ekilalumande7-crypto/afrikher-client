@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 const articles = [
@@ -65,12 +64,8 @@ export default function FeaturedArticles() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {articles.map((article, index) => (
-            <motion.div
+            <div
               key={article.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.8 }}
               className={cn("group relative overflow-hidden bg-brand-charcoal", article.gridClass)}
             >
               <Link href={`/magazine/${article.slug}`} className="block w-full h-full">
@@ -96,7 +91,7 @@ export default function FeaturedArticles() {
                   </p>
                 </div>
               </Link>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

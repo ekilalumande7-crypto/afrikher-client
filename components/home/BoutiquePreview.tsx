@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 
 const products = [
@@ -66,12 +65,8 @@ export default function BoutiquePreview() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
           {products.map((product, index) => (
-            <motion.div
+            <div
               key={product.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="group"
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-brand-charcoal/5 mb-6 rounded-sm">
@@ -108,7 +103,7 @@ export default function BoutiquePreview() {
                   {product.name}
                 </h3>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
