@@ -90,7 +90,7 @@ export default function HeroSection() {
           <div className="flex flex-col sm:flex-row items-start gap-4">
             <Link href="/journal">
               <AfrikherButton variant="gold" size="lg">
-                DÉCOUVRIR LE JOURNAL
+                DÉCOUVRIR LE MAGAZINE
               </AfrikherButton>
             </Link>
             <a
