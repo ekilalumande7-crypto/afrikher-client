@@ -1,7 +1,12 @@
-import Stripe from 'stripe';
+// Placeholder — AFRIKHER uses FIDEPAY for payments, not direct Stripe SDK.
+// This module exists only to prevent build errors from legacy API routes.
 
-const apiKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy';
-
-export const stripe = new Stripe(apiKey, {
-  apiVersion: '2025-01-27' as any,
-});
+export const stripe = {
+  checkout: {
+    sessions: {
+      async create(_opts: any) {
+        throw new Error("Stripe direct integration disabled. Use FIDEPAY.");
+      },
+    },
+  },
+} as any;

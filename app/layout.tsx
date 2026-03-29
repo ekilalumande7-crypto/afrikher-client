@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={`${cormorant.variable} ${montserrat.variable}`}>
-      <body className="antialiased" style={{ backgroundColor: "#0A0A0A", margin: 0, padding: 0 }}>
+      <body className="antialiased" suppressHydrationWarning style={{ backgroundColor: "#0A0A0A", margin: 0, padding: 0 }}>
         {children}
       </body>
     </html>

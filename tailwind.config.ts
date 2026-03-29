@@ -18,6 +18,8 @@ const config: Config = {
           dark: "#0A0A0A",
           cream: "#F5F0E8",
           warmcream: "#F5E6C8",
+          charcoal: "#2A2A2A",
+          gray: "#7A7A7A",
         },
       },
     },
