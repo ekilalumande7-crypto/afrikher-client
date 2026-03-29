@@ -1,10 +1,12 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ProductCard from "@/components/boutique/ProductCard";
-import { Search, Filter } from "lucide-react";
+import { Search, ListFilter as Filter } from "lucide-react";
 
 const types = ["Tous", "Livre", "Fleurs", "Accessoire", "Autre"];
 

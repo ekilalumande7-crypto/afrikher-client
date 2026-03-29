@@ -20,8 +20,6 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['motion', 'lucide-react'],
   },
-  // Reduce memory usage during build
-  swcMinify: true,
 };
 
 export default nextConfig;
