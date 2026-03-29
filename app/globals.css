@@ -1,13 +1,12 @@
-@import "tailwindcss";
-
-@theme {
-  --font-display: var(--font-cormorant);
-  --font-body: var(--font-montserrat);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #F5E6C8;
   --foreground: #1A1A1A;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'Montserrat', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
