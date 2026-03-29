@@ -1,12 +1,9 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Check } from "lucide-react";
-import { motion } from "motion/react";
 
 const plans = [
   {
@@ -82,12 +79,8 @@ export default function AbonnementsPage() {
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
           {plans.map((plan, index) => (
-            <motion.div
+            <div
               key={plan.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className={`relative p-12 border ${
                 plan.featured ? "bg-brand-dark text-brand-cream border-brand-gold" : "bg-white text-brand-dark border-brand-charcoal/10"
               } shadow-xl`}
@@ -135,7 +128,7 @@ export default function AbonnementsPage() {
                   plan.cta
                 )}
               </button>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>

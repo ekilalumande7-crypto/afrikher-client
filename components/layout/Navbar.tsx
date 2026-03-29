@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "motion/react";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -112,18 +111,12 @@ export default function Navbar() {
       <AnimatePresence>
         {isAboutModalOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
               onClick={() => setIsAboutModalOpen(false)}
               className="absolute inset-0 bg-black/90 backdrop-blur-md"
             />
             
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            <div
               className="relative w-full max-w-2xl bg-[#0A0A0A] border border-[#C9A84C]/20 p-8 md:p-16 overflow-y-auto max-h-[90vh]"
             >
               <button 
@@ -161,7 +154,7 @@ export default function Navbar() {
                   Fermer
                 </button>
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
@@ -171,20 +164,12 @@ export default function Navbar() {
         {isMegaMenuOpen && (
           <>
             {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.25 }}
-              exit={{ opacity: 0 }}
+            <div
               onClick={() => setIsMegaMenuOpen(false)}
-              transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
               className="fixed inset-0 bg-black backdrop-blur-[2px] z-[120]"
             />
             {/* Drawer */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 0.9, ease: [0.76, 0, 0.24, 1] }}
+            <div
               className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] bg-[#080808]/97 z-[130] shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Header */}
@@ -207,15 +192,8 @@ export default function Navbar() {
                   const delays = [0.15, 0.22, 0.29, 0.36, 0.43, 0.50, 0.57, 0.64];
                   
                   return (
-                    <motion.div
+                    <div
                       key={link.id}
-                      initial={{ opacity: 0, y: 25 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ 
-                        delay: delays[idx], 
-                        duration: 0.7, 
-                        ease: [0.33, 1, 0.68, 1] 
-                      }}
                       className="group relative"
                     >
                       {/* Delimiter Line - Refined Gray Style */}
@@ -242,7 +220,7 @@ export default function Navbar() {
                           <span className="ml-6 text-[#C9A84C] font-display text-[1.5rem] leading-none">——</span>
                         )}
                       </Link>
-                    </motion.div>
+                    </div>
                   );
                 })}
                 <div className="relative h-[1px]">
@@ -251,17 +229,14 @@ export default function Navbar() {
               </nav>
 
               {/* Footer */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
+              <div
                 className="border-t border-white/5 px-10 py-8"
               >
                 <p className="font-display italic text-[0.9rem] text-[#9A9A8A]">
                   L'élégance hors du commun.
                 </p>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </>
         )}
       </AnimatePresence>
@@ -269,10 +244,7 @@ export default function Navbar() {
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+          <div
             className="fixed inset-0 z-[110] bg-[#0A0A0A] p-12 flex flex-col items-center justify-center space-y-8"
           >
             <button 
@@ -291,7 +263,7 @@ export default function Navbar() {
                 {link.name}
               </Link>
             ))}
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function Newsletter() {
@@ -26,10 +25,7 @@ export default function Newsletter() {
     <section className="py-32 px-6 md:px-12 bg-brand-cream text-brand-dark border-t border-brand-charcoal/5">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+          <div
             className="max-w-xl"
           >
             <span className="text-brand-gold font-body font-bold uppercase tracking-[0.4em] text-[10px] mb-4 block">
@@ -56,12 +52,9 @@ export default function Newsletter() {
                 <span className="text-[10px] uppercase tracking-widest font-bold text-brand-gray">Contenu Privé</span>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+          <div
             className="bg-white p-8 md:p-12 shadow-2xl rounded-2xl border border-brand-charcoal/5"
           >
             <h3 className="text-2xl font-display font-bold mb-6">S'abonner à la newsletter</h3>
@@ -106,7 +99,7 @@ export default function Newsletter() {
                 Une erreur est survenue. Veuillez réessayer.
               </p>
             )}
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
