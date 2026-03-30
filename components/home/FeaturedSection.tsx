@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 const ARTICLES = [
@@ -52,11 +51,10 @@ export default function FeaturedSection() {
               className="group cursor-pointer"
             >
               <div className="relative aspect-[4/5] overflow-hidden mb-6">
-                <Image
+                <img
                   src={article.image}
                   alt={article.title}
-                  fill
-                  className="object-cover grayscale hover:grayscale-0 transition-all duration-700 scale-100 group-hover:scale-110"
+                  className="absolute inset-0 w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 scale-100 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute top-4 left-4 bg-brand-dark text-brand-gold px-3 py-1 text-[10px] font-body font-bold uppercase tracking-widest">
