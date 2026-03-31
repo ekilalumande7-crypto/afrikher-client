@@ -124,6 +124,13 @@ export default function Navbar() {
                 EN SAVOIR PLUS
               </button>
 
+              <Link
+                href="/auth/login"
+                className="text-[0.7rem] font-body font-light tracking-[0.2em] text-[#C9A84C] uppercase hover:text-[#E8C97A] transition-colors duration-300 border border-[#C9A84C]/40 px-4 py-2 hover:border-[#C9A84C] hover:bg-[#C9A84C]/10"
+              >
+                SE CONNECTER
+              </Link>
+
               <button
                 onClick={() => setIsMegaMenuOpen(!isMegaMenuOpen)}
                 className="group flex items-center space-x-4 text-[#F5F0E8] transition-colors duration-300"
@@ -406,6 +413,17 @@ export default function Navbar() {
           })}
           <div className="mx-0 mt-1 h-[1px] bg-white/[0.06]" />
         </nav>
+
+        {/* Mobile login button */}
+        <div className="px-6 pb-3">
+          <Link
+            href="/auth/login"
+            onClick={closeAll}
+            className="block w-full text-center text-[0.7rem] font-body font-light tracking-[0.2em] text-[#C9A84C] uppercase border border-[#C9A84C]/40 px-4 py-3 hover:border-[#C9A84C] hover:bg-[#C9A84C]/10 transition-all duration-300"
+          >
+            SE CONNECTER
+          </Link>
+        </div>
 
         {/* Mobile footer */}
         <div className="px-6 py-5">
