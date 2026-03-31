@@ -11,3 +11,4 @@ coverage/
 _backup_api/
 fix-all*.cjs
 backup-api*/
+.vercel
