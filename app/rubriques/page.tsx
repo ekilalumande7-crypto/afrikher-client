@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { Play } from "lucide-react";
 
 // ══════════════════════════════════════════════
@@ -130,17 +129,20 @@ export default function RubriquesPage() {
   if (loading) {
     return (
       <main className="min-h-screen bg-[#F5F0E8]">
+        {/* Bandeau noir derrière le header */}
+        <div className="fixed top-0 left-0 right-0 h-20 bg-[#0A0A0A] z-[90]" />
         <Navbar />
         <div className="flex items-center justify-center h-[60vh]">
           <div className="w-10 h-10 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
         </div>
-        <Footer />
       </main>
     );
   }
 
   return (
     <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
+      {/* Bandeau noir derrière le header pour visibilité sur fond crème */}
+      <div className="fixed top-0 left-0 right-0 h-20 bg-[#0A0A0A] z-[90]" />
       <Navbar />
 
       {/* ══════════════════════════════════════════════ */}
@@ -423,19 +425,6 @@ export default function RubriquesPage() {
         </section>
       )}
 
-      {/* ══════════════════════════════════════════════ */}
-      {/* SECTION FERMETURE ÉLÉGANTE */}
-      {/* ══════════════════════════════════════════════ */}
-      <section className="py-16 bg-[#F5F0E8]">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="w-8 h-[1px] bg-[#C9A84C] mx-auto mb-8" />
-          <p className="font-display italic text-lg text-[#9A9A8A]">
-            L&apos;élégance hors du commun.
-          </p>
-        </div>
-      </section>
-
-      <Footer />
     </main>
   );
 }
