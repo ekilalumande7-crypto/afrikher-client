@@ -1,145 +1,157 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { User, Package, CreditCard, LogOut, Settings, Bell } from "lucide-react";
 
-export default function DashboardPage() {
+export default function DashboardProfilPage() {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [profile, setProfile] = useState<any>(null);
+  const [editing, setEditing] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/auth/login");
-      } else {
+      if (user) {
         setUser(user);
-      }
-      setLoading(false);
-    };
-    fetchUser();
-  }, [router]);
+        setFullName(user.user_metadata?.full_name || "");
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/");
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        if (profileData) {
+          setProfile(profileData);
+          setFullName(profileData.full_name || user.user_metadata?.full_name || "");
+        }
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    setMessage("");
+
+    // Update profiles table
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        full_name: fullName,
+        updated_at: new Date().toISOString(),
+      });
+
+    // Also update auth metadata
+    await supabase.auth.updateUser({
+      data: { full_name: fullName }
+    });
+
+    if (error) {
+      setMessage("Erreur lors de la sauvegarde.");
+    } else {
+      setMessage("Profil mis à jour avec succès !");
+      setEditing(false);
+    }
+    setSaving(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-brand-dark flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-brand-gold border-t-transparent animate-spin rounded-full" />
-      </div>
-    );
-  }
-
   return (
-    <main className="min-h-screen bg-brand-cream text-brand-dark">
-      <Navbar />
-      
-      <section className="pt-40 pb-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-start gap-12">
-            
-            {/* Sidebar */}
-            <aside className="w-full md:w-64 space-y-2">
-              <div className="p-6 bg-brand-dark text-brand-cream mb-8 border border-brand-gold/20">
-                <div className="w-16 h-16 bg-brand-gold rounded-full flex items-center justify-center text-brand-dark text-2xl font-bold mb-4">
-                  {user?.user_metadata?.full_name?.charAt(0) || "U"}
-                </div>
-                <h3 className="font-display text-xl font-bold truncate">{user?.user_metadata?.full_name || "Utilisateur"}</h3>
-                <p className="text-brand-gray text-xs truncate">{user?.email}</p>
-              </div>
+    <div className="space-y-8">
+      <div className="bg-white p-8 md:p-10 border border-[#2A2A2A]/10 shadow-sm">
+        <h2 className="text-2xl md:text-3xl font-display font-bold mb-8">Informations Personnelles</h2>
 
-              <button className="w-full flex items-center space-x-3 p-4 bg-brand-dark text-brand-gold text-sm uppercase tracking-widest font-bold">
-                <User size={18} />
-                <span>Profil</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
-                <Package size={18} />
-                <span>Mes Commandes</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
-                <CreditCard size={18} />
-                <span>Abonnement</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
-                <Bell size={18} />
-                <span>Notifications</span>
-              </button>
-              <button className="w-full flex items-center space-x-3 p-4 hover:bg-brand-charcoal/5 text-brand-gray text-sm uppercase tracking-widest transition-colors">
-                <Settings size={18} />
-                <span>Paramètres</span>
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center space-x-3 p-4 hover:bg-red-50 text-red-500 text-sm uppercase tracking-widest transition-colors mt-8"
-              >
-                <LogOut size={18} />
-                <span>Déconnexion</span>
-              </button>
-            </aside>
+        {message && (
+          <div className={`mb-6 p-4 text-sm ${message.includes("Erreur") ? "bg-red-50 text-red-600 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+            {message}
+          </div>
+        )}
 
-            {/* Content */}
-            <div className="flex-1 space-y-12">
-              <div
-                className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
-              >
-                <h2 className="text-3xl font-display font-bold mb-8">Informations Personnelles</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-gray font-bold">Nom complet</label>
-                    <p className="border-b border-brand-charcoal/10 py-2 text-brand-dark">{user?.user_metadata?.full_name}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] uppercase tracking-widest text-brand-gray font-bold">Email</label>
-                    <p className="border-b border-brand-charcoal/10 py-2 text-brand-dark">{user?.email}</p>
-                  </div>
-                </div>
-                <button className="mt-10 px-8 py-3 bg-brand-dark text-brand-cream text-xs uppercase tracking-widest hover:bg-brand-gold hover:text-brand-dark transition-all">
-                  Modifier le profil
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div
-                  className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
-                >
-                  <h3 className="text-2xl font-display font-bold mb-6">Abonnement Actuel</h3>
-                  <div className="p-6 bg-brand-cream border border-brand-gold/20">
-                    <p className="text-xs uppercase tracking-widest text-brand-gold font-bold mb-2">Plan Gratuit</p>
-                    <p className="text-brand-gray text-sm mb-6">Accès limité aux articles publics.</p>
-                    <Link href="/abonnement" className="text-xs uppercase tracking-widest text-brand-dark font-bold border-b border-brand-dark pb-1">
-                      Passer au Premium
-                    </Link>
-                  </div>
-                </div>
-
-                <div
-                  className="bg-white p-10 border border-brand-charcoal/10 shadow-sm"
-                >
-                  <h3 className="text-2xl font-display font-bold mb-6">Dernière Commande</h3>
-                  <div className="text-center py-8">
-                    <p className="text-brand-gray text-sm italic">Vous n'avez pas encore passé de commande.</p>
-                    <Link href="/boutique" className="inline-block mt-6 text-xs uppercase tracking-widest text-brand-gold font-bold border-b border-brand-gold pb-1">
-                      Visiter la boutique
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold">Nom complet</label>
+            {editing ? (
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full border border-[#C9A84C]/40 bg-[#F5F0E8] py-2 px-3 text-[#0A0A0A] focus:outline-none focus:border-[#C9A84C]"
+              />
+            ) : (
+              <p className="border-b border-[#2A2A2A]/10 py-2 text-[#0A0A0A]">{fullName || "Non renseigné"}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold">Email</label>
+            <p className="border-b border-[#2A2A2A]/10 py-2 text-[#0A0A0A]">{user?.email}</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold">Rôle</label>
+            <p className="border-b border-[#2A2A2A]/10 py-2 text-[#0A0A0A] capitalize">{profile?.role || "reader"}</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold">Inscrit depuis</label>
+            <p className="border-b border-[#2A2A2A]/10 py-2 text-[#0A0A0A]">
+              {user?.created_at ? new Date(user.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+            </p>
           </div>
         </div>
-      </section>
 
-      <Footer />
-    </main>
+        <div className="mt-8 flex gap-4">
+          {editing ? (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-8 py-3 bg-[#C9A84C] text-[#0A0A0A] text-xs uppercase tracking-widest font-bold hover:bg-[#E8C97A] transition-all disabled:opacity-50"
+              >
+                {saving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="px-8 py-3 border border-[#2A2A2A]/20 text-[#9A9A8A] text-xs uppercase tracking-widest hover:bg-[#2A2A2A]/5 transition-all"
+              >
+                Annuler
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-8 py-3 bg-[#0A0A0A] text-[#F5F0E8] text-xs uppercase tracking-widest hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all"
+            >
+              Modifier le profil
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white p-8 border border-[#2A2A2A]/10 shadow-sm">
+          <h3 className="text-xl font-display font-bold mb-6">Abonnement Actuel</h3>
+          <div className="p-5 bg-[#F5F0E8] border border-[#C9A84C]/20">
+            <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">Plan Gratuit</p>
+            <p className="text-[#9A9A8A] text-sm mb-4">Accès limité aux articles publics.</p>
+            <Link href="/abonnement" className="text-xs uppercase tracking-widest text-[#0A0A0A] font-bold border-b border-[#0A0A0A] pb-1">
+              Passer au Premium
+            </Link>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 border border-[#2A2A2A]/10 shadow-sm">
+          <h3 className="text-xl font-display font-bold mb-6">Dernière Commande</h3>
+          <div className="text-center py-6">
+            <p className="text-[#9A9A8A] text-sm italic">Vous n&apos;avez pas encore passé de commande.</p>
+            <Link href="/boutique" className="inline-block mt-4 text-xs uppercase tracking-widest text-[#C9A84C] font-bold border-b border-[#C9A84C] pb-1">
+              Visiter la boutique
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
