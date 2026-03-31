@@ -59,23 +59,28 @@ export async function POST(request: Request) {
     const supabase = getServiceRoleClient();
 
     // Create order record
+    const orderData: Record<string, any> = {
+      items,
+      total: calculatedAmount,
+      status: 'pending',
+      customer_email,
+      shipping_address: shipping_address || null,
+    };
+    // Only include user_id if we have one (guest checkout = no user_id)
+    if (userId) {
+      orderData.user_id = userId;
+    }
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        user_id: userId,
-        items,
-        total: calculatedAmount,
-        status: 'pending',
-        customer_email,
-        shipping_address: shipping_address || null,
-      })
+      .insert(orderData)
       .select()
       .single();
 
     if (orderError || !order) {
       console.error('Order creation error:', orderError);
       return NextResponse.json(
-        { error: 'Failed to create order' },
+        { error: `Failed to create order: ${orderError?.message || 'unknown error'}`, details: orderError },
         { status: 500 }
       );
     }
