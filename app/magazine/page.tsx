@@ -243,7 +243,7 @@ export default function MagazinePage() {
       {isMegaMenuOpen && (
         <>
           <div onClick={() => setIsMegaMenuOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-md z-[120]" />
-          <div className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] bg-[#080808]/97 z-[130] shadow-2xl flex flex-col overflow-hidden">
+          <div className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] bg-[#080808] z-[130] shadow-2xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-10 py-12">
               <span className="text-[#9A9A8A] font-sans text-[0.65rem] tracking-[0.35em] uppercase">NAVIGATION</span>
               <button onClick={() => setIsMegaMenuOpen(false)} className="group w-8 h-8 flex items-center justify-center border border-white/20 rounded-full text-[#F5F0E8] hover:border-[#C9A84C] hover:text-[#C9A84C] transition-all duration-300">
