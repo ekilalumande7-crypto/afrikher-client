@@ -74,12 +74,13 @@ export default function Navbar() {
   const navLinks = [
     { id: "01", name: "Accueil", href: "/" },
     { id: "02", name: "Magazine", href: "/magazine" },
-    { id: "03", name: "Rubriques", href: "/rubriques" },
-    { id: "04", name: "Boutique", href: "/boutique" },
-    { id: "05", name: "Blog", href: "/blog" },
-    { id: "06", name: "Abonnement", href: "/abonnement" },
-    { id: "07", name: "Contact", href: "/contact" },
-    { id: "08", name: "Partenaires", href: "/partenaires" },
+    { id: "03", name: "Les Rubriques", href: "/rubriques" },
+    { id: "04", name: "Qui sommes-nous", href: "/qui-sommes-nous" },
+    { id: "05", name: "Boutique", href: "/boutique" },
+    { id: "06", name: "Blog", href: "/blog" },
+    { id: "07", name: "Abonnement", href: "/abonnement" },
+    { id: "08", name: "Contact", href: "/contact" },
+    { id: "09", name: "Partenaires", href: "/partenaires" },
   ];
 
   const closeAll = useCallback(() => {
