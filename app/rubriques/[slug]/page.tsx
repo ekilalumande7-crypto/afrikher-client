@@ -4,11 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
-import { ArrowLeft, Clock, User, Tag, Share2, ChevronRight } from "lucide-react";
-
-// ══════════════════════════════════════════════
-// TYPES
-// ══════════════════════════════════════════════
+import { ArrowLeft, Clock, User, Share2, ChevronRight } from "lucide-react";
 
 interface Article {
   id: string;
@@ -24,7 +20,6 @@ interface Article {
   featured: boolean;
   published_at: string | null;
   created_at: string;
-  author_name?: string;
   source: "editorial" | "blog";
 }
 
@@ -36,41 +31,30 @@ interface RelatedArticle {
   cover_image: string | null;
   type: string;
   published_at: string | null;
-  source: "editorial" | "blog";
 }
 
-// ══════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+function formatDate(d: string | null): string {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function readTime(content: string): number {
-  const words = content.replace(/<[^>]*>/g, "").split(/\s+/).length;
-  return Math.max(1, Math.ceil(words / 200));
+  return Math.max(1, Math.ceil(content.replace(/<[^>]*>/g, "").split(/\s+/).length / 200));
 }
 
-function typeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    article: "Article",
-    interview: "Interview",
-    portrait: "Portrait",
-    dossier: "Dossier",
-  };
-  return labels[type] || "Article";
+function typeLabel(t: string): string {
+  const m: Record<string, string> = { article: "Article", interview: "Interview", portrait: "Portrait", dossier: "Dossier" };
+  return m[t] || "Article";
 }
 
-// ══════════════════════════════════════════════
-// COMPONENT
-// ══════════════════════════════════════════════
+const TAG_COLORS: Record<string, { bg: string; text: string }> = {
+  editorial: { bg: "#EDE9FE", text: "#7C3AED" },
+  blog: { bg: "#DBEAFE", text: "#2563EB" },
+  interview: { bg: "#D1FAE5", text: "#059669" },
+  portrait: { bg: "#FEF3C7", text: "#D97706" },
+  dossier: { bg: "#FCE7F3", text: "#DB2777" },
+  article: { bg: "#E0E7FF", text: "#4F46E5" },
+};
 
 export default function ArticleDetailPage() {
   const params = useParams();
@@ -95,7 +79,6 @@ export default function ArticleDetailPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5a3Z6eml0Z21uaXBzY3hiaGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjc1ODAsImV4cCI6MjA1ODk0MzU4MH0.yqOgQhnMKOaAoLkVDwH99jEMVilrp42ckFWPhNGk-Ys"
       );
 
-      // Try articles table first
       let { data: art } = await supabase
         .from("articles")
         .select("*, categories(name)")
@@ -105,7 +88,6 @@ export default function ArticleDetailPage() {
 
       let source: "editorial" | "blog" = "editorial";
 
-      // If not found, try blog_posts table
       if (!art) {
         const { data: blog } = await supabase
           .from("blog_posts")
@@ -113,28 +95,16 @@ export default function ArticleDetailPage() {
           .eq("slug", slug)
           .eq("status", "published")
           .single();
-
         if (blog) {
           art = { ...blog, type: "article", category_id: null, featured: false };
           source = "blog";
         }
       }
 
-      if (!art) {
-        setNotFound(true);
-        setLoading(false);
-        return;
-      }
+      if (!art) { setNotFound(true); setLoading(false); return; }
 
-      const categoryName = art.categories?.name || null;
+      setArticle({ ...art, category_name: art.categories?.name || null, source });
 
-      setArticle({
-        ...art,
-        category_name: categoryName,
-        source,
-      });
-
-      // Fetch related articles (same category or recent)
       const { data: relatedData } = await supabase
         .from("articles")
         .select("id, title, slug, excerpt, cover_image, type, published_at")
@@ -143,41 +113,25 @@ export default function ArticleDetailPage() {
         .order("published_at", { ascending: false })
         .limit(3);
 
-      if (relatedData) {
-        setRelated(
-          relatedData.map((r: any) => ({ ...r, source: "editorial" as const }))
-        );
-      }
-    } catch (err) {
-      console.error("Error fetching article:", err);
+      if (relatedData) setRelated(relatedData);
+    } catch {
       setNotFound(true);
     }
     setLoading(false);
   }
 
-  // ── LOADING STATE ──
+  // ── LOADING ──
   if (loading) {
     return (
-      <div style={{ background: "#0A0A0A", minHeight: "100vh" }}>
+      <div style={{ background: "#FAFAF8", minHeight: "100vh" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 80, background: "#0A0A0A", zIndex: 90 }} />
         <Navbar />
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "60vh",
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              border: "3px solid #2A2A2A",
-              borderTop: "3px solid #C9A84C",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-            }}
-          />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+          <div style={{
+            width: 36, height: 36,
+            border: "3px solid #E8E5DE", borderTop: "3px solid #C9A84C",
+            borderRadius: "50%", animation: "spin 1s linear infinite",
+          }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
@@ -187,592 +141,326 @@ export default function ArticleDetailPage() {
   // ── NOT FOUND ──
   if (notFound || !article) {
     return (
-      <div style={{ background: "#0A0A0A", minHeight: "100vh" }}>
+      <div style={{ background: "#FAFAF8", minHeight: "100vh" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 80, background: "#0A0A0A", zIndex: 90 }} />
         <Navbar />
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "60vh",
-            color: "#F5F0E8",
-            textAlign: "center",
-            padding: "0 24px",
-          }}
-        >
-          <h1
-            style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: 48,
-              fontWeight: 600,
-              color: "#C9A84C",
-              marginBottom: 16,
-            }}
-          >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", padding: "0 24px" }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 42, fontWeight: 600, color: "#1A1A1A", marginBottom: 12 }}>
             Article introuvable
           </h1>
-          <p style={{ color: "#9A9A8A", fontSize: 18, marginBottom: 32 }}>
+          <p style={{ color: "#9A9A8A", fontSize: 16, marginBottom: 32, fontFamily: "'DM Sans', sans-serif" }}>
             Cet article n&apos;existe pas ou a ete retire.
           </p>
-          <Link
-            href="/blog"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "12px 32px",
-              border: "1px solid #C9A84C",
-              color: "#C9A84C",
-              textDecoration: "none",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              letterSpacing: "0.05em",
-              transition: "all 0.3s",
-            }}
-          >
-            <ArrowLeft size={16} />
-            RETOUR AU BLOG
+          <Link href="/blog" style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            padding: "12px 28px", border: "1px solid #1A1A1A", borderRadius: 8,
+            color: "#1A1A1A", textDecoration: "none",
+            fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600,
+          }}>
+            <ArrowLeft size={16} /> Retour au blog
           </Link>
         </div>
       </div>
     );
   }
 
-  const reading = readTime(article.content || "");
+  const mins = readTime(article.content || "");
+  const tagStyle = TAG_COLORS[article.source] || TAG_COLORS.article;
+  const typeTagStyle = TAG_COLORS[article.type] || TAG_COLORS.article;
 
   return (
-    <div style={{ background: "#0A0A0A", minHeight: "100vh" }}>
+    <div style={{ background: "#FAFAF8", minHeight: "100vh" }}>
+      {/* Navbar dark band */}
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 80, background: "#0A0A0A", zIndex: 90 }} />
       <Navbar />
 
-      {/* ── HERO IMAGE ── */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "60vh",
-          minHeight: 400,
-          maxHeight: 600,
-          overflow: "hidden",
-        }}
-      >
-        {article.cover_image ? (
-          <img
-            src={article.cover_image}
-            alt={article.title}
-            style={{
+      {/* ── COVER IMAGE ── */}
+      <div style={{ paddingTop: 80 }}>
+        <div style={{
+          maxWidth: 1000, margin: "0 auto", padding: "32px 24px 0",
+        }}>
+          {/* Back link */}
+          <Link href="/blog" style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            color: "#6B7280", textDecoration: "none",
+            fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+            marginBottom: 24,
+          }}>
+            <ArrowLeft size={16} /> Retour au blog
+          </Link>
+
+          {/* Cover image */}
+          {article.cover_image && (
+            <div style={{
               width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: "linear-gradient(135deg, #2A2A2A 0%, #0A0A0A 100%)",
-            }}
-          />
-        )}
-        {/* Gradient overlay */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to top, #0A0A0A 0%, rgba(10,10,10,0.4) 50%, rgba(10,10,10,0.2) 100%)",
-          }}
-        />
-
-        {/* Back button */}
-        <Link
-          href="/blog"
-          style={{
-            position: "absolute",
-            top: 100,
-            left: 40,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 20px",
-            background: "rgba(10,10,10,0.6)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(201,168,76,0.3)",
-            color: "#F5F0E8",
-            textDecoration: "none",
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            letterSpacing: "0.05em",
-            transition: "all 0.3s",
-            zIndex: 10,
-          }}
-        >
-          <ArrowLeft size={14} />
-          RETOUR
-        </Link>
-
-        {/* Title overlay */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "60px 40px 40px",
-            zIndex: 5,
-          }}
-        >
-          <div style={{ maxWidth: 900, margin: "0 auto" }}>
-            {/* Badges */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginBottom: 20,
-                flexWrap: "wrap",
-              }}
-            >
-              <span
-                style={{
-                  padding: "4px 14px",
-                  background: "#C9A84C",
-                  color: "#0A0A0A",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                }}
-              >
-                {article.source === "blog" ? "Blog" : typeLabel(article.type)}
-              </span>
-              {article.category_name && (
-                <span
-                  style={{
-                    padding: "4px 14px",
-                    border: "1px solid rgba(201,168,76,0.4)",
-                    color: "#C9A84C",
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 11,
-                    fontWeight: 500,
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {article.category_name}
-                </span>
-              )}
+              aspectRatio: "16/8",
+              overflow: "hidden",
+              borderRadius: 16,
+              marginBottom: 40,
+              background: "#E8E5DE",
+            }}>
+              <img
+                src={article.cover_image}
+                alt={article.title}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             </div>
-
-            {/* Title */}
-            <h1
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: "clamp(28px, 5vw, 52px)",
-                fontWeight: 600,
-                color: "#F5F0E8",
-                lineHeight: 1.15,
-                margin: 0,
-              }}
-            >
-              {article.title}
-            </h1>
-
-            {/* Meta */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 24,
-                marginTop: 20,
-                color: "#9A9A8A",
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14,
-                flexWrap: "wrap",
-              }}
-            >
-              {article.published_at && (
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Clock size={14} />
-                  {formatDate(article.published_at)}
-                </span>
-              )}
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <User size={14} />
-                AFRIKHER
-              </span>
-              <span>{reading} min de lecture</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* ── ARTICLE CONTENT ── */}
-      <article
-        style={{
-          maxWidth: 780,
-          margin: "0 auto",
-          padding: "60px 24px 80px",
-        }}
-      >
-        {/* Excerpt / Lead */}
+      {/* ── ARTICLE HEADER ── */}
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 24px" }}>
+        {/* Tags */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
+          <span style={{
+            padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif",
+            background: tagStyle.bg, color: tagStyle.text,
+          }}>
+            {article.source === "blog" ? "Blog" : "Editorial"}
+          </span>
+          {article.type !== "article" && (
+            <span style={{
+              padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              background: typeTagStyle.bg, color: typeTagStyle.text,
+            }}>
+              {typeLabel(article.type)}
+            </span>
+          )}
+          {article.category_name && (
+            <span style={{
+              padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif",
+              background: "#F3F4F6", color: "#6B7280",
+            }}>
+              {article.category_name}
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
+        <h1 style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: "clamp(32px, 5vw, 48px)",
+          fontWeight: 600,
+          color: "#1A1A1A",
+          lineHeight: 1.15,
+          margin: "0 0 20px",
+        }}>
+          {article.title}
+        </h1>
+
+        {/* Meta row */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
+          paddingBottom: 32, marginBottom: 32,
+          borderBottom: "1px solid #E8E5DE",
+          fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: "#9A9A8A",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <User size={15} /> AFRIKHER
+          </span>
+          {article.published_at && (
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Clock size={15} /> {formatDate(article.published_at)}
+            </span>
+          )}
+          <span>{mins} min de lecture</span>
+        </div>
+
+        {/* Excerpt */}
         {article.excerpt && (
-          <p
-            style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: 22,
-              fontStyle: "italic",
-              color: "#C9A84C",
-              lineHeight: 1.6,
-              marginBottom: 40,
-              paddingBottom: 40,
-              borderBottom: "1px solid rgba(201,168,76,0.2)",
-            }}
-          >
+          <p style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: 22,
+            fontStyle: "italic",
+            color: "#4B5563",
+            lineHeight: 1.6,
+            marginBottom: 40,
+          }}>
             {article.excerpt}
           </p>
         )}
 
-        {/* Content */}
+        {/* ── CONTENT ── */}
         <div
-          className="article-content"
+          className="article-body"
           dangerouslySetInnerHTML={{ __html: article.content || "" }}
           style={{
             fontFamily: "'DM Sans', sans-serif",
-            fontSize: 18,
-            lineHeight: 1.8,
-            color: "#E0DDD5",
+            fontSize: 17,
+            lineHeight: 1.85,
+            color: "#374151",
           }}
         />
 
-        {/* Content styles */}
         <style>{`
-          .article-content p {
+          .article-body p {
             margin-bottom: 24px;
-            color: #E0DDD5;
           }
-          .article-content h2 {
+          .article-body h2 {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 32px;
+            font-size: 30px;
             font-weight: 600;
-            color: #F5F0E8;
-            margin: 48px 0 20px;
+            color: #1A1A1A;
+            margin: 48px 0 16px;
           }
-          .article-content h3 {
+          .article-body h3 {
             font-family: 'Cormorant Garamond', Georgia, serif;
             font-size: 24px;
             font-weight: 600;
-            color: #F5F0E8;
-            margin: 36px 0 16px;
+            color: #1A1A1A;
+            margin: 36px 0 12px;
           }
-          .article-content blockquote {
+          .article-body blockquote {
             border-left: 3px solid #C9A84C;
             padding: 16px 24px;
             margin: 32px 0;
             font-style: italic;
-            color: #C9A84C;
-            background: rgba(201,168,76,0.05);
+            color: #6B7280;
+            background: #FDF9EF;
+            border-radius: 0 8px 8px 0;
           }
-          .article-content img {
+          .article-body img {
             width: 100%;
             height: auto;
+            border-radius: 12px;
             margin: 32px 0;
           }
-          .article-content a {
+          .article-body a {
             color: #C9A84C;
             text-decoration: underline;
           }
-          .article-content ul, .article-content ol {
+          .article-body ul, .article-body ol {
             padding-left: 24px;
             margin-bottom: 24px;
           }
-          .article-content li {
+          .article-body li {
             margin-bottom: 8px;
-            color: #E0DDD5;
           }
-          .article-content strong {
-            color: #F5F0E8;
+          .article-body strong {
+            color: #1A1A1A;
             font-weight: 600;
           }
         `}</style>
 
-        {/* Share / Tags section */}
-        <div
-          style={{
-            marginTop: 60,
-            paddingTop: 40,
-            borderTop: "1px solid rgba(201,168,76,0.15)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 16,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Tag size={16} color="#9A9A8A" />
-            <span
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 13,
-                color: "#9A9A8A",
-              }}
-            >
-              {article.source === "blog" ? "Blog" : typeLabel(article.type)}
-              {article.category_name ? ` / ${article.category_name}` : ""}
-            </span>
-          </div>
+        {/* ── SHARE BAR ── */}
+        <div style={{
+          marginTop: 48, paddingTop: 24,
+          borderTop: "1px solid #E8E5DE",
+          display: "flex", justifyContent: "flex-end",
+        }}>
           <button
             onClick={() => {
               if (navigator.share) {
-                navigator.share({
-                  title: article.title,
-                  url: window.location.href,
-                });
+                navigator.share({ title: article.title, url: window.location.href });
               } else {
                 navigator.clipboard.writeText(window.location.href);
                 alert("Lien copie !");
               }
             }}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "8px 20px",
-              background: "transparent",
-              border: "1px solid rgba(201,168,76,0.3)",
-              color: "#C9A84C",
-              cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 13,
-              letterSpacing: "0.05em",
-              transition: "all 0.3s",
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 24px", background: "#1A1A1A",
+              color: "#fff", border: "none", borderRadius: 8,
+              cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+              fontSize: 13, fontWeight: 600,
             }}
           >
-            <Share2 size={14} />
-            PARTAGER
+            <Share2 size={14} /> Partager
           </button>
         </div>
-      </article>
+      </div>
 
       {/* ── RELATED ARTICLES ── */}
       {related.length > 0 && (
-        <section
-          style={{
-            background: "#111",
-            padding: "80px 24px",
-          }}
-        >
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: 36,
-                fontWeight: 600,
-                color: "#F5F0E8",
-                textAlign: "center",
-                marginBottom: 48,
-              }}
-            >
-              Articles{" "}
-              <span style={{ color: "#C9A84C", fontStyle: "italic" }}>
-                similaires
-              </span>
-            </h2>
+        <section style={{ maxWidth: 1100, margin: "0 auto", padding: "80px 24px" }}>
+          <h2 style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: 32, fontWeight: 600, color: "#1A1A1A",
+            marginBottom: 40,
+          }}>
+            Articles similaires
+          </h2>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: 32,
-              }}
-            >
-              {related.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/rubriques/${r.slug}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  <div
-                    style={{
-                      background: "#1A1A1A",
-                      overflow: "hidden",
-                      transition: "transform 0.3s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.transform = "translateY(-4px)")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.transform = "translateY(0)")
-                    }
-                  >
-                    <div
-                      style={{
-                        height: 200,
-                        overflow: "hidden",
-                        position: "relative",
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 32 }}>
+            {related.map((r) => (
+              <Link key={r.id} href={`/rubriques/${r.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <div style={{ cursor: "pointer" }}>
+                  <div style={{
+                    aspectRatio: "4/3", overflow: "hidden", borderRadius: 12,
+                    marginBottom: 16, background: "#E8E5DE",
+                  }}>
+                    {r.cover_image ? (
+                      <img src={r.cover_image} alt={r.title} style={{
+                        width: "100%", height: "100%", objectFit: "cover",
+                        transition: "transform 0.5s",
                       }}
-                    >
-                      {r.cover_image ? (
-                        <img
-                          src={r.cover_image}
-                          alt={r.title}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            transition: "transform 0.5s",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            background:
-                              "linear-gradient(135deg, #2A2A2A, #1A1A1A)",
-                          }}
-                        />
-                      )}
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: 12,
-                          left: 12,
-                          padding: "3px 10px",
-                          background: "#C9A84C",
-                          color: "#0A0A0A",
-                          fontFamily: "'DM Sans', sans-serif",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: "0.1em",
-                          textTransform: "uppercase",
-                        }}
-                      >
+                      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                      />
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#9A9A8A" }}>
+                        AFRIKHER
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                    {r.type !== "article" && (
+                      <span style={{
+                        padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600,
+                        fontFamily: "'DM Sans', sans-serif",
+                        background: (TAG_COLORS[r.type] || TAG_COLORS.article).bg,
+                        color: (TAG_COLORS[r.type] || TAG_COLORS.article).text,
+                      }}>
                         {typeLabel(r.type)}
                       </span>
-                    </div>
-                    <div style={{ padding: "20px 24px 24px" }}>
-                      <h3
-                        style={{
-                          fontFamily:
-                            "'Cormorant Garamond', Georgia, serif",
-                          fontSize: 20,
-                          fontWeight: 600,
-                          color: "#F5F0E8",
-                          lineHeight: 1.3,
-                          margin: "0 0 12px",
-                        }}
-                      >
-                        {r.title}
-                      </h3>
-                      {r.excerpt && (
-                        <p
-                          style={{
-                            fontFamily: "'DM Sans', sans-serif",
-                            fontSize: 14,
-                            color: "#9A9A8A",
-                            lineHeight: 1.5,
-                            margin: 0,
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          {r.excerpt}
-                        </p>
-                      )}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          marginTop: 16,
-                          color: "#C9A84C",
-                          fontFamily: "'DM Sans', sans-serif",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        LIRE LA SUITE
-                        <ChevronRight size={14} />
-                      </div>
-                    </div>
+                    )}
                   </div>
-                </Link>
-              ))}
-            </div>
+
+                  <h3 style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 17, fontWeight: 700, color: "#1A1A1A",
+                    lineHeight: 1.35, margin: "0 0 8px",
+                  }}>
+                    {r.title}
+                  </h3>
+
+                  {r.excerpt && (
+                    <p style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 14, color: "#6B7280", lineHeight: 1.6,
+                      margin: 0,
+                      display: "-webkit-box", WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical", overflow: "hidden",
+                    }}>
+                      {r.excerpt}
+                    </p>
+                  )}
+
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    marginTop: 14, color: "#C9A84C",
+                    fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600,
+                  }}>
+                    Lire la suite <ChevronRight size={14} />
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       )}
 
-      {/* ── NEWSLETTER CTA ── */}
-      <section
-        style={{
-          padding: "80px 24px",
-          textAlign: "center",
-          background: "#0A0A0A",
-        }}
-      >
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2
-            style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontSize: 32,
-              fontWeight: 600,
-              color: "#F5F0E8",
-              marginBottom: 16,
-            }}
-          >
-            Ne manquez aucun article
-          </h2>
-          <p
-            style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 16,
-              color: "#9A9A8A",
-              marginBottom: 32,
-            }}
-          >
-            Inscrivez-vous a notre newsletter pour recevoir nos derniers contenus.
-          </p>
-          <Link
-            href="/blog"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "14px 36px",
-              background: "#C9A84C",
-              color: "#0A0A0A",
-              textDecoration: "none",
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: "0.05em",
-              transition: "all 0.3s",
-            }}
-          >
-            DECOUVRIR TOUS LES ARTICLES
-            <ChevronRight size={16} />
-          </Link>
-        </div>
-      </section>
-
-      {/* ── MINIMAL FOOTER ── */}
-      <footer
-        style={{
-          padding: "24px 40px",
-          borderTop: "1px solid rgba(201,168,76,0.1)",
-          textAlign: "center",
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 13,
-          color: "#9A9A8A",
-        }}
-      >
+      {/* ── FOOTER ── */}
+      <footer style={{
+        padding: "32px 24px", borderTop: "1px solid #E8E5DE",
+        textAlign: "center", fontFamily: "'DM Sans', sans-serif",
+        fontSize: 13, color: "#9A9A8A", background: "#FAFAF8",
+      }}>
         &copy; {new Date().getFullYear()} AFRIKHER. Tous droits reserves.
       </footer>
     </div>
