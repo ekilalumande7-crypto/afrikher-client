@@ -15,6 +15,8 @@ interface FidepayConfig {
   publicKey: string;
   secretKey: string;
   mode: 'live' | 'test';
+  accessTokenUrl: string;
+  makePaymentUrl: string;
 }
 
 interface FidepayTokenResponse {
@@ -53,7 +55,10 @@ export async function getFidepayConfig(): Promise<FidepayConfig> {
     const { data } = await supabase
       .from('site_config')
       .select('key, value')
-      .in('key', ['fidepay_public_key', 'fidepay_secret_key', 'fidepay_mode']);
+      .in('key', [
+        'fidepay_public_key', 'fidepay_secret_key', 'fidepay_mode',
+        'fidepay_access_token_url', 'fidepay_make_payment_url'
+      ]);
 
     const configMap: Record<string, string> = {};
     if (data) {
@@ -62,10 +67,20 @@ export async function getFidepayConfig(): Promise<FidepayConfig> {
       }
     }
 
+    const mode = (configMap['fidepay_mode'] as 'live' | 'test') || 'test';
+    const defaultAccessTokenUrl = mode === 'live'
+      ? 'https://admin.fide-pay.com/api/merchant/access-token'
+      : 'https://admin.fide-pay.com/api/merchant/sandbox/access-token';
+    const defaultMakePaymentUrl = mode === 'live'
+      ? 'https://admin.fide-pay.com/api/merchant/make-payment'
+      : 'https://admin.fide-pay.com/api/sandbox/make-payment';
+
     const config: FidepayConfig = {
       publicKey: configMap['fidepay_public_key'] || process.env.FIDEPAY_API_KEY || '',
       secretKey: configMap['fidepay_secret_key'] || process.env.FIDEPAY_WEBHOOK_SECRET || '',
-      mode: (configMap['fidepay_mode'] as 'live' | 'test') || 'test',
+      mode,
+      accessTokenUrl: configMap['fidepay_access_token_url'] || defaultAccessTokenUrl,
+      makePaymentUrl: configMap['fidepay_make_payment_url'] || defaultMakePaymentUrl,
     };
 
     cachedConfig = { config, expiresAt: Date.now() + 5 * 60 * 1000 };
@@ -76,15 +91,10 @@ export async function getFidepayConfig(): Promise<FidepayConfig> {
       publicKey: process.env.FIDEPAY_API_KEY || '',
       secretKey: process.env.FIDEPAY_WEBHOOK_SECRET || '',
       mode: 'test',
+      accessTokenUrl: 'https://admin.fide-pay.com/api/merchant/sandbox/access-token',
+      makePaymentUrl: 'https://admin.fide-pay.com/api/sandbox/make-payment',
     };
   }
-}
-
-// ── Get base URL based on mode ──
-function getBaseUrl(mode: 'live' | 'test'): string {
-  return mode === 'live'
-    ? 'https://admin.fide-pay.com/api/merchant'
-    : 'https://admin.fide-pay.com/api/merchant/sandbox';
 }
 
 // ── Get access token ──
@@ -99,9 +109,7 @@ export async function getFidepayToken(): Promise<string> {
     throw new Error('FIDEPAY public_key is not configured. Go to Admin > Parametres > Paiements to set it up.');
   }
 
-  const baseUrl = getBaseUrl(config.mode);
-
-  const response = await fetch(`${baseUrl}/access-token`, {
+  const response = await fetch(config.accessTokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ public_key: config.publicKey }),
@@ -136,17 +144,9 @@ export async function createPayment(params: {
   customer_email?: string;
 }): Promise<FidepayPaymentResponse> {
   const config = await getFidepayConfig();
-  const baseUrl = getBaseUrl(config.mode);
   const token = await getFidepayToken();
 
-  // FIDEPAY make-payment endpoint
-  // Live: /api/merchant/make-payment
-  // Sandbox: /api/sandbox/make-payment
-  const paymentUrl = config.mode === 'live'
-    ? 'https://admin.fide-pay.com/api/merchant/make-payment'
-    : 'https://admin.fide-pay.com/api/sandbox/make-payment';
-
-  const response = await fetch(paymentUrl, {
+  const response = await fetch(config.makePaymentUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
