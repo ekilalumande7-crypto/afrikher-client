@@ -9,8 +9,8 @@ interface SubscriptionPlanPricing {
 }
 
 const SUBSCRIPTION_PRICING: SubscriptionPlanPricing = {
-  monthly: 999, // EUR cents
-  annual: 9990, // EUR cents
+  monthly: 9.99,
+  annual: 99.90,
 };
 
 export async function POST(request: Request) {
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         user_id: userId,
         plan,
         status: 'trialing',
-        amount: amount / 100,
+        amount,
         currency: 'EUR',
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         amount,
         currency: 'EUR',
         transaction_id: transactionId,
-        description: `AFRIKHER Subscription ${plan} - ${userId}`,
+        description: `AFRIKHER Abo ${plan}`,
         ipn_url: `${siteUrl}/api/fidepay/webhook`,
         success_url: `${siteUrl}/abonnement/merci?subscription=${subscription.id}`,
         cancel_url: `${siteUrl}/abonnement`,

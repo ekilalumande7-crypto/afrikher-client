@@ -52,13 +52,14 @@ export async function POST(request: Request) {
 
     try {
       const payment = await createPayment({
-        amount: amount * 100, // Convert to cents
+        amount,
         currency,
         transaction_id: transactionId,
-        description: `AFRIKHER Order #${order.id}`,
+        description: `AFRIKHER Commande`,
         ipn_url: `${siteUrl}/api/fidepay/webhook`,
         success_url: `${siteUrl}/boutique/merci?order=${order.id}`,
         cancel_url: `${siteUrl}/boutique`,
+        customer_email: authResult.user?.email || '',
       });
 
       // Update order with FidePay data

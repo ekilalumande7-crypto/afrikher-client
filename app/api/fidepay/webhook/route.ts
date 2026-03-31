@@ -1,113 +1,124 @@
 import { NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
-import { verifyWebhookSignature, parseWebhookPayload } from '@/lib/fidepay';
-import { sendNotification } from '@/lib/notifications';
+import { verifyWebhookSignature, parseWebhookParams } from '@/lib/fidepay';
 
-export async function POST(request: Request) {
+// ══════════════════════════════════════════════
+// FIDEPAY IPN WEBHOOK
+// Doc: FIDEPAY sends a GET request with query params
+// ?status=...&signature=...&data[transaction_id]=...&data[total_amount]=...
+// ══════════════════════════════════════════════
+
+export async function GET(request: Request) {
   try {
-    const signature = request.headers.get('x-fidepay-signature');
-    if (!signature) {
-      return NextResponse.json(
-        { error: 'Missing signature' },
-        { status: 401 }
-      );
+    const url = new URL(request.url);
+    const webhookData = parseWebhookParams(url);
+
+    // If no status param, this is a health check
+    if (!webhookData.status && !webhookData.transaction_id) {
+      return NextResponse.json({ status: 'ok', message: 'FIDEPAY webhook endpoint active' });
     }
 
-    // Get raw body for signature verification
-    const rawBody = await request.text();
+    // Verify signature
+    const isValid = await verifyWebhookSignature(
+      webhookData.transaction_id,
+      webhookData.total_amount,
+      webhookData.signature
+    );
 
-    // Verify webhook signature
-    if (!verifyWebhookSignature(rawBody, signature)) {
-      console.warn('Invalid webhook signature');
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      );
+    if (!isValid) {
+      console.warn('Invalid FIDEPAY webhook signature for transaction:', webhookData.transaction_id);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
-
-    const payload = parseWebhookPayload(rawBody);
-    const { status, transaction_id, amount, custom_data } = payload;
 
     const supabase = getServiceRoleClient();
+    const txId = webhookData.transaction_id;
 
-    // Find order by transaction ID
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('fidepay_payment_id', transaction_id)
-      .single();
+    // Determine if this is an order or subscription payment
+    const isSubscription = txId.startsWith('SUB_');
 
-    if (orderError || !order) {
-      console.warn(`Order not found for transaction ${transaction_id}`);
-      return NextResponse.json(
-        { success: false, message: 'Order not found' },
-        { status: 404 }
-      );
-    }
+    if (isSubscription) {
+      // Handle subscription payment
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('fidepay_sub_id', txId)
+        .single();
 
-    // Map FidePay status to order status
-    let orderStatus = 'pending';
-    if (status === 'completed' || status === 'success') {
-      orderStatus = 'paid';
-    } else if (status === 'failed' || status === 'cancelled') {
-      orderStatus = 'cancelled';
-    }
-
-    // Update order status
-    const { error: updateError } = await supabase
-      .from('orders')
-      .update({
-        status: orderStatus,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', order.id);
-
-    if (updateError) {
-      console.error('Failed to update order:', updateError);
-      return NextResponse.json(
-        { success: false, message: 'Failed to update order' },
-        { status: 500 }
-      );
-    }
-
-    // Send notification to user
-    if (order.user_id) {
-      try {
-        if (orderStatus === 'paid') {
-          await sendNotification(order.user_id, {
-            title: 'Paiement reçu',
-            body: `Votre commande #${order.id} a été payée avec succès`,
-            type: 'order',
-            data: { orderId: order.id, status: 'paid' },
-          });
-        } else if (orderStatus === 'cancelled') {
-          await sendNotification(order.user_id, {
-            title: 'Paiement échoué',
-            body: `Le paiement pour votre commande #${order.id} a échoué`,
-            type: 'order',
-            data: { orderId: order.id, status: 'failed' },
-          });
-        }
-      } catch (notifError) {
-        console.error('Failed to send notification:', notifError);
+      if (!subscription) {
+        console.warn(`Subscription not found for transaction ${txId}`);
+        return NextResponse.json({ success: false, message: 'Subscription not found' }, { status: 404 });
       }
-    }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Webhook processed',
-      orderId: order.id,
-    });
+      const newStatus = webhookData.status === 'success' || webhookData.status === 'completed'
+        ? 'active' : 'cancelled';
+
+      await supabase
+        .from('subscriptions')
+        .update({ status: newStatus })
+        .eq('id', subscription.id);
+
+      // Notify user
+      if (subscription.user_id) {
+        try {
+          await supabase.from('notifications').insert({
+            user_id: subscription.user_id,
+            title: newStatus === 'active' ? 'Abonnement active' : 'Paiement echoue',
+            body: newStatus === 'active'
+              ? 'Votre abonnement AFRIKHER est maintenant actif.'
+              : 'Le paiement de votre abonnement a echoue.',
+            type: 'order',
+            data: { subscriptionId: subscription.id, status: newStatus },
+          });
+        } catch (e) { console.error('Notification error:', e); }
+      }
+
+      return NextResponse.json({ success: true, type: 'subscription', status: newStatus });
+    } else {
+      // Handle order payment
+      const { data: order } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('fidepay_payment_id', txId)
+        .single();
+
+      if (!order) {
+        console.warn(`Order not found for transaction ${txId}`);
+        return NextResponse.json({ success: false, message: 'Order not found' }, { status: 404 });
+      }
+
+      const orderStatus = webhookData.status === 'success' || webhookData.status === 'completed'
+        ? 'paid' : 'cancelled';
+
+      await supabase
+        .from('orders')
+        .update({ status: orderStatus, updated_at: new Date().toISOString() })
+        .eq('id', order.id);
+
+      // Notify user
+      if (order.user_id) {
+        try {
+          await supabase.from('notifications').insert({
+            user_id: order.user_id,
+            title: orderStatus === 'paid' ? 'Paiement recu' : 'Paiement echoue',
+            body: orderStatus === 'paid'
+              ? `Votre commande #${order.id.slice(0, 8)} a ete payee avec succes.`
+              : `Le paiement pour votre commande #${order.id.slice(0, 8)} a echoue.`,
+            type: 'order',
+            data: { orderId: order.id, status: orderStatus },
+          });
+        } catch (e) { console.error('Notification error:', e); }
+      }
+
+      return NextResponse.json({ success: true, type: 'order', status: orderStatus });
+    }
   } catch (error) {
-    console.error('POST /api/fidepay/webhook error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('FIDEPAY webhook error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function GET() {
-  // FidePay may use GET for health checks
-  return NextResponse.json({ status: 'ok' });
+// Also handle POST in case FIDEPAY changes behavior
+export async function POST(request: Request) {
+  // Redirect to GET handler with same URL
+  return GET(request);
 }
