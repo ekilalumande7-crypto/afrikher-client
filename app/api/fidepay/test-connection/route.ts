@@ -41,24 +41,35 @@ export async function POST(request: Request) {
       body: JSON.stringify({ public_key }),
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.access_token) {
-        return corsJson({
-          success: true,
-          message: 'Connexion reussie ! Token obtenu avec succes.',
-        });
-      } else {
-        return corsJson({
-          success: false,
-          message: 'Reponse inattendue de FIDEPAY. Verifiez votre cle publique.',
-        });
-      }
-    } else {
-      const errorText = await response.text();
+    const responseText = await response.text();
+    let data: any;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
       return corsJson({
         success: false,
-        message: `Erreur ${response.status}: ${errorText.substring(0, 200)}`,
+        message: `Reponse non-JSON de FIDEPAY (status ${response.status}): ${responseText.substring(0, 150)}`,
+      });
+    }
+
+    if (!response.ok) {
+      return corsJson({
+        success: false,
+        message: `Erreur ${response.status}: ${data?.message || data?.error || responseText.substring(0, 150)}`,
+      });
+    }
+
+    // Check for access_token in various possible locations
+    const token = data.access_token || data.data?.access_token || data.token || data.data?.token;
+    if (token) {
+      return corsJson({
+        success: true,
+        message: 'Connexion reussie ! Token obtenu avec succes.',
+      });
+    } else {
+      return corsJson({
+        success: false,
+        message: `Reponse FIDEPAY sans token. Cles: ${Object.keys(data).join(', ')}. Verifiez votre cle publique.`,
       });
     }
   } catch (err: any) {
