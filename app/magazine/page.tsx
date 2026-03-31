@@ -130,6 +130,16 @@ export default function MagazinePage() {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isMegaMenuOpen || isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isMegaMenuOpen, isMobileMenuOpen]);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -242,28 +252,36 @@ export default function MagazinePage() {
       {/* Mega Menu */}
       {isMegaMenuOpen && (
         <>
-          <div onClick={() => setIsMegaMenuOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-md z-[120]" />
-          <div className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] bg-[#080808] z-[130] shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-10 py-12">
-              <span className="text-[#9A9A8A] font-sans text-[0.65rem] tracking-[0.35em] uppercase">NAVIGATION</span>
-              <button onClick={() => setIsMegaMenuOpen(false)} className="group w-8 h-8 flex items-center justify-center border border-white/20 rounded-full text-[#F5F0E8] hover:border-[#C9A84C] hover:text-[#C9A84C] transition-all duration-300">
-                <span className="text-[1.2rem] leading-none mt-[-2px]">&times;</span>
+          <div onClick={() => setIsMegaMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-[12px] z-[120]" />
+          <div className="fixed top-0 right-0 bottom-0 w-full md:w-[38%] md:min-w-[480px] bg-[#0D0D0D] z-[130] shadow-2xl flex flex-col overflow-hidden border-l border-white/5">
+            <div className="flex items-center justify-between px-10 pt-10 pb-6">
+              <span className="text-white/40 font-sans text-[0.6rem] tracking-[0.35em] uppercase">Navigation</span>
+              <button onClick={() => setIsMegaMenuOpen(false)} className="group w-9 h-9 flex items-center justify-center border border-white/15 rounded-full text-[#F5F0E8] hover:border-[#C9A84C] hover:text-[#C9A84C] transition-all duration-500 bg-white/[0.03]">
+                <span className="text-[1rem] leading-none">&times;</span>
               </button>
             </div>
-            <nav className="flex-1 flex flex-col justify-center">
-              {navLinks.map((link) => {
+            <div className="mx-10 h-[1px] bg-white/[0.08]" />
+            <nav className="flex-1 flex flex-col justify-center py-4">
+              {navLinks.map((link, idx) => {
                 const isActive = link.href === "/magazine";
                 return (
                   <div key={link.id} className="group relative">
-                    <div className="absolute top-0 left-[4.5rem] right-[15%] h-[1px] bg-[#9A9A8A]/30" />
-                    <Link href={link.href} onClick={() => setIsMegaMenuOpen(false)} className="flex items-center px-10 py-5 md:py-6 transition-all duration-500 group-hover:translate-x-[10px]">
-                      <span className={cn("font-sans text-[0.7rem] tracking-[0.1em] mr-8", isActive ? "text-[#C9A84C]" : "text-[#9A9A8A] group-hover:text-[#C9A84C]")}>{link.id}</span>
-                      <span className={cn("font-serif font-light text-[1.8rem] md:text-[2.4rem] leading-none", isActive ? "text-[#C9A84C]" : "text-[#F5F0E8] group-hover:text-[#C9A84C]")}>{link.name}</span>
+                    {idx > 0 && (
+                      <div className="absolute top-0 left-[4.5rem] right-[2.5rem] h-[1px] bg-white/[0.06] group-hover:bg-white/[0.12] transition-all duration-500" />
+                    )}
+                    <Link href={link.href} onClick={() => setIsMegaMenuOpen(false)} className="flex items-center px-10 py-[0.85rem] transition-all duration-500 group-hover:translate-x-[8px]">
+                      <span className={cn("font-sans text-[0.65rem] tracking-[0.1em] mr-6 w-5", isActive ? "text-[#C9A84C]" : "text-white/20 group-hover:text-[#C9A84C]/50")}>{link.id}</span>
+                      <span className={cn("font-serif font-normal text-[1.6rem] md:text-[2rem] leading-none tracking-wide", isActive ? "text-[#C9A84C]" : "text-[#F5F0E8] group-hover:text-[#C9A84C]")}>{link.name}</span>
+                      {isActive && <span className="ml-auto text-[#C9A84C]/60 font-serif text-[1rem] leading-none">——</span>}
                     </Link>
                   </div>
                 );
               })}
+              <div className="mx-10 mt-1 h-[1px] bg-white/[0.06]" />
             </nav>
+            <div className="px-10 py-6">
+              <p className="font-serif italic text-[0.85rem] text-white/25 text-right">L&apos;elegance hors du commun.</p>
+            </div>
           </div>
         </>
       )}
