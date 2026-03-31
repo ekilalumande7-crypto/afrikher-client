@@ -145,46 +145,9 @@ export default function MagazineReaderClient({ slug }: Props) {
     }
   };
 
-  const handlePurchase = async () => {
-    setPurchasing(true);
-    // TODO: Integrate with FIDEPAY
-    // For now, redirect to login if not authenticated
-    try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !supabaseKey) {
-        window.location.href = "/auth/login";
-        return;
-      }
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = `/auth/login?redirect=/magazine/${slug}`;
-        return;
-      }
-      // Call FIDEPAY checkout API
-      const response = await fetch("/api/fidepay/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          items: [{ product_id: magazine?.id, name: magazine?.title, qty: 1, price: magazine?.price }],
-          type: "magazine",
-          magazine_id: magazine?.id,
-        }),
-      });
-      const data = await response.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      }
-    } catch {
-      window.location.href = "/auth/login";
-    } finally {
-      setPurchasing(false);
-    }
+  const handlePurchase = () => {
+    // Redirect to checkout page with magazine info
+    window.location.href = `/boutique/checkout?magazine=${slug}`;
   };
 
   if (loading) {

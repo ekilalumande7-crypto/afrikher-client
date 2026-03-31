@@ -97,26 +97,10 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
   // CHECKOUT
   // ══════════════════════════════════════════════
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!product) return;
-    setCheckingOut(true);
-    try {
-      const res = await fetch("/api/fidepay/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [{ product_id: product.id, name: product.name, qty: quantity, price: product.price }],
-        }),
-      });
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      }
-    } catch (err) {
-      console.error("Checkout error:", err);
-    } finally {
-      setCheckingOut(false);
-    }
+    // Redirect to checkout page with product info
+    window.location.href = `/boutique/checkout?product=${product.id}&qty=${quantity}`;
   };
 
   // ══════════════════════════════════════════════
