@@ -120,15 +120,22 @@ export async function getFidepayToken(): Promise<string> {
     throw new Error(`FIDEPAY token error (${response.status}): ${errorText}`);
   }
 
-  const data = (await response.json()) as FidepayTokenResponse;
+  const data = await response.json();
+
+  // FIDEPAY returns { status: "success", token: "...", expires_in: "..." }
+  const accessToken = data.token || data.access_token || data.data?.token || data.data?.access_token;
+
+  if (!accessToken) {
+    throw new Error(`FIDEPAY returned no token. Keys: ${Object.keys(data).join(', ')}`);
+  }
 
   // Cache token for 55 min (tokens typically last 60 min)
   cachedToken = {
-    token: data.access_token,
+    token: accessToken,
     expiresAt: Date.now() + 55 * 60 * 1000,
   };
 
-  return data.access_token;
+  return accessToken;
 }
 
 // ── Create payment ──
