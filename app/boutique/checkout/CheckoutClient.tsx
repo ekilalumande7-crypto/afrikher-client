@@ -61,13 +61,19 @@ export default function CheckoutClient() {
   async function loadProductAndAuth() {
     setLoading(true);
     try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!url || !key) throw new Error("No Supabase config");
-      const supabase = createClient(url, key);
+      // Use the shared supabase client that has the persisted session
+      const { supabase } = await import("@/lib/supabase");
 
-      const { data: { session: sess } } = await supabase.auth.getSession();
+      // Try getSession first, fall back to getUser for more reliable auth check
+      let sess = null;
+      const { data: sessionData } = await supabase.auth.getSession();
+      sess = sessionData?.session;
+
+      // If getSession returns null, try refreshing — sometimes the token is stale
+      if (!sess) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        sess = refreshData?.session;
+      }
 
       // Force authentication - redirect to login if not authenticated
       if (!sess) {
@@ -192,11 +198,7 @@ export default function CheckoutClient() {
       // Save address to profile for next time
       if (!isDigital && address && session?.user?.id) {
         try {
-          const { createClient } = await import("@supabase/supabase-js");
-          const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-          );
+          const { supabase } = await import("@/lib/supabase");
           await supabase.from("profiles").update({
             phone,
             address,
