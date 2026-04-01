@@ -47,6 +47,72 @@ function typeLabel(t: string): string {
   return m[t] || "Article";
 }
 
+/**
+ * Process article HTML content to ensure proper paragraph spacing.
+ * Old content saved from plain textarea often has one giant <p> block.
+ * This function splits it into proper paragraphs.
+ */
+function processContent(html: string): string {
+  if (!html || html.trim().length === 0) return "";
+
+  // If content already has multiple <p> tags with content, it's from Tiptap — leave it alone
+  const pTagCount = (html.match(/<p[\s>]/g) || []).length;
+  if (pTagCount > 3) return html;
+
+  // Strip existing <p> wrapper if it's just one big block
+  let text = html;
+  // If content is wrapped in a single <p>...</p>, extract it
+  const singlePMatch = text.match(/^<p>([\s\S]*)<\/p>$/i);
+  if (singlePMatch && pTagCount <= 2) {
+    text = singlePMatch[1];
+  }
+
+  // Convert explicit \n to line breaks
+  if (text.includes("\n")) {
+    // Split by double newlines first (paragraph breaks)
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim());
+    if (paragraphs.length > 1) {
+      return paragraphs.map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+    }
+    // Single newlines → at least add <br>
+    text = text.replace(/\n/g, "<br>");
+  }
+
+  // If it's a long text block without breaks, try to split at sentence boundaries
+  // Look for patterns like ". Uppercase" which indicate new sentences/paragraphs
+  const stripped = text.replace(/<[^>]*>/g, "");
+  if (stripped.length > 600 && !text.includes("<br>") && pTagCount <= 1) {
+    // Split roughly every 2-4 sentences for readability
+    const sentences = text.split(/(?<=\.)\s+(?=[A-ZÀ-ÿ«"])/g);
+    if (sentences.length > 3) {
+      const groups: string[] = [];
+      let current = "";
+      let count = 0;
+      for (const s of sentences) {
+        current += (current ? " " : "") + s;
+        count++;
+        // Create a new paragraph every 2-3 sentences
+        if (count >= 3 || current.length > 400) {
+          groups.push(current);
+          current = "";
+          count = 0;
+        }
+      }
+      if (current.trim()) groups.push(current);
+      if (groups.length > 1) {
+        return groups.map(g => `<p>${g.trim()}</p>`).join("");
+      }
+    }
+  }
+
+  // Wrap in <p> if not already
+  if (!text.startsWith("<p")) {
+    text = `<p>${text}</p>`;
+  }
+
+  return text;
+}
+
 const TAG_COLORS: Record<string, { bg: string; text: string }> = {
   editorial: { bg: "#EDE9FE", text: "#7C3AED" },
   blog: { bg: "#DBEAFE", text: "#2563EB" },
@@ -210,7 +276,7 @@ export default function ArticleDetailPage() {
       </div>
 
       {/* ── ARTICLE HEADER ── */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 24px" }}>
+      <div style={{ maxWidth: 780, margin: "0 auto", padding: "0 24px" }}>
         {/* Tags */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           <span style={{
@@ -287,19 +353,29 @@ export default function ArticleDetailPage() {
         {/* ── CONTENT ── */}
         <div
           className="article-body"
-          dangerouslySetInnerHTML={{ __html: article.content || "" }}
+          dangerouslySetInnerHTML={{ __html: processContent(article.content || "") }}
           style={{
             fontFamily: "'DM Sans', sans-serif",
-            fontSize: 17,
-            lineHeight: 1.85,
+            fontSize: 18,
+            lineHeight: 1.9,
             color: "#374151",
+            letterSpacing: "0.01em",
           }}
         />
 
         <style>{`
           .article-body p {
-            margin-bottom: 1.5em;
-            line-height: 1.85;
+            margin-bottom: 1.6em;
+            line-height: 1.9;
+          }
+          .article-body > p:first-child::first-letter {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 3.5em;
+            float: left;
+            line-height: 0.8;
+            margin: 0.05em 0.12em 0 0;
+            color: #C9A84C;
+            font-weight: 600;
           }
           .article-body p:empty,
           .article-body p > br:only-child {
