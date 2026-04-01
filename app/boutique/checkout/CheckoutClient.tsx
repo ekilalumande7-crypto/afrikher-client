@@ -190,18 +190,18 @@ export default function CheckoutClient() {
     setSubmitting(true);
 
     try {
-      // ALWAYS get a fresh token before calling the API — never use stale session state
+      // ALWAYS force a fresh token before calling the API — never use stale session state
       const { supabase } = await import("@/lib/supabase");
       let freshToken: string | null = null;
 
-      // Try getSession first
-      const { data: { session: freshSession } } = await supabase.auth.getSession();
-      freshToken = freshSession?.access_token || null;
+      // Force refreshSession FIRST to get a truly fresh access_token from Supabase server
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      freshToken = refreshed?.session?.access_token || null;
 
-      // If no session, try refreshing
+      // Fallback: try getSession if refresh somehow didn't work
       if (!freshToken) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        freshToken = refreshed?.session?.access_token || null;
+        const { data: { session: cachedSession } } = await supabase.auth.getSession();
+        freshToken = cachedSession?.access_token || null;
       }
 
       // If still no token, the user is truly not connected — redirect to login
@@ -217,7 +217,7 @@ export default function CheckoutClient() {
       };
 
       // Save address to profile for next time
-      const userId = freshSession?.user?.id || session?.user?.id;
+      const userId = refreshed?.session?.user?.id || session?.user?.id;
       if (!isDigital && address && userId) {
         try {
           await supabase.from("profiles").update({
@@ -482,16 +482,15 @@ export default function CheckoutClient() {
                     </div>
                   </div>
 
-                  {/* Shipping address card */}
-                  {!isDigital && (
-                    <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E5E0D5]/50 shadow-sm">
+                  {/* Shipping address card — always visible for all products */}
+                  <div className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E5E0D5]/50 shadow-sm">
                       <h2
                         className="text-xl font-bold text-[#0A0A0A] mb-1"
                         style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
                       >
                         Adresse de livraison
                       </h2>
-                      <p className="text-xs text-[#9A9A8A] mb-6">Ou souhaitez-vous etre livre(e) ?</p>
+                      <p className="text-xs text-[#9A9A8A] mb-6">{isDigital ? "Optionnel pour les produits numeriques." : "Ou souhaitez-vous etre livre(e) ?"}</p>
 
                       {/* Saved address toggle */}
                       {hasSavedAddress && (
@@ -535,8 +534,8 @@ export default function CheckoutClient() {
                             type="text"
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
-                            required
-                            placeholder="Adresse complete *"
+                            required={!isDigital}
+                            placeholder={isDigital ? "Adresse (optionnel)" : "Adresse complete *"}
                             className={inputClass}
                           />
                         </div>
@@ -549,8 +548,8 @@ export default function CheckoutClient() {
                               type="text"
                               value={city}
                               onChange={(e) => setCity(e.target.value)}
-                              required
-                              placeholder="Ville *"
+                              required={!isDigital}
+                              placeholder={isDigital ? "Ville (optionnel)" : "Ville *"}
                               className={inputClass}
                             />
                           </div>
@@ -601,19 +600,6 @@ export default function CheckoutClient() {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Digital notice */}
-                  {isDigital && (
-                    <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-2xl p-5 flex items-center gap-4">
-                      <div className="w-10 h-10 bg-[#C9A84C]/10 rounded-xl flex items-center justify-center shrink-0">
-                        <ShieldCheck size={20} className="text-[#C9A84C]" />
-                      </div>
-                      <p className="text-sm text-[#0A0A0A]">
-                        Produit numerique — pas de livraison. Acces immediat apres paiement.
-                      </p>
-                    </div>
-                  )}
 
                   {/* Error */}
                   {error && (
@@ -722,7 +708,7 @@ export default function CheckoutClient() {
                           <span className="text-[#0A0A0A] font-medium">{phone}</span>
                         </div>
                       )}
-                      {!isDigital && address && (
+                      {address && (
                         <div className="flex items-center gap-3 py-2">
                           <MapPin size={16} className="text-[#C9A84C] shrink-0" />
                           <span className="text-[#9A9A8A] w-20 shrink-0">Adresse</span>
