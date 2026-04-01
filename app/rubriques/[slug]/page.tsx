@@ -336,32 +336,68 @@ export default function ArticleDetailPage() {
           <span>{mins} min de lecture</span>
         </div>
 
-        {/* Excerpt */}
-        {article.excerpt && (
-          <p style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: 22,
-            fontStyle: "italic",
-            color: "#4B5563",
-            lineHeight: 1.6,
-            marginBottom: 40,
-          }}>
-            {article.excerpt}
-          </p>
-        )}
+        {/* Excerpt + Content logic:
+            - If content exists → show excerpt as intro + content as body
+            - If content is empty but excerpt is long → treat excerpt as the full article body
+            - If content is empty and excerpt is short → just show excerpt as intro
+        */}
+        {(() => {
+          const hasContent = !!article.content && article.content.trim().length > 10;
+          const excerptText = article.excerpt || "";
+          const isExcerptLong = excerptText.length > 500;
 
-        {/* ── CONTENT ── */}
-        <div
-          className="article-body"
-          dangerouslySetInnerHTML={{ __html: processContent(article.content || "") }}
-          style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 18,
-            lineHeight: 1.9,
-            color: "#374151",
-            letterSpacing: "0.01em",
-          }}
-        />
+          // Process excerpt: convert \n to <br> for HTML rendering
+          const processExcerpt = (text: string) => {
+            if (!text) return "";
+            // Convert double newlines to paragraph breaks, single \n to <br>
+            let html = text
+              .replace(/\n\s*\n/g, '</p><p>')
+              .replace(/\n/g, '<br>');
+            // Wrap in <p> tags if we created paragraph breaks
+            if (html.includes('</p><p>')) {
+              html = '<p>' + html + '</p>';
+            }
+            return html;
+          };
+
+          return (
+            <>
+              {/* Show excerpt as styled intro ONLY if we also have content, or excerpt is short */}
+              {excerptText && (hasContent || !isExcerptLong) && (
+                <div
+                  dangerouslySetInnerHTML={{ __html: processExcerpt(excerptText) }}
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontSize: 22,
+                    fontStyle: "italic",
+                    color: "#4B5563",
+                    lineHeight: 1.6,
+                    marginBottom: 40,
+                  }}
+                />
+              )}
+
+              {/* Main article body */}
+              <div
+                className="article-body"
+                dangerouslySetInnerHTML={{
+                  __html: hasContent
+                    ? processContent(article.content!)
+                    : isExcerptLong
+                      ? processContent(excerptText)
+                      : ""
+                }}
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: 18,
+                  lineHeight: 1.9,
+                  color: "#374151",
+                  letterSpacing: "0.01em",
+                }}
+              />
+            </>
+          );
+        })()}
 
         <style>{`
           .article-body p {
