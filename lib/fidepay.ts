@@ -153,22 +153,29 @@ export async function createPayment(params: {
   const config = await getFidepayConfig();
   const token = await getFidepayToken();
 
+  const paymentBody = {
+    amount: params.amount,
+    currency: params.currency,
+    transaction_id: params.transaction_id,
+    description: params.description,
+    ipn_url: params.ipn_url,
+    callback_url: params.success_url,
+    return_url: params.success_url,
+    cancel_url: params.cancel_url,
+    customer_name: params.customer_name || '',
+    customer_email: params.customer_email || '',
+  };
+
+  console.log('[FIDEPAY] Creating payment:', JSON.stringify(paymentBody));
+  console.log('[FIDEPAY] Using URL:', config.makePaymentUrl);
+
   const response = await fetch(config.makePaymentUrl, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      amount: params.amount,
-      currency: params.currency,
-      transaction_id: params.transaction_id,
-      description: params.description,
-      ipn_url: params.ipn_url,
-      callback_url: params.success_url,
-      customer_name: params.customer_name || '',
-      customer_email: params.customer_email || '',
-    }),
+    body: JSON.stringify(paymentBody),
   });
 
   if (!response.ok) {
