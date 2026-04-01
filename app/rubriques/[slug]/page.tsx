@@ -342,9 +342,13 @@ export default function ArticleDetailPage() {
             - If content is empty and excerpt is short → just show excerpt as intro
         */}
         {(() => {
-          const hasContent = !!article.content && article.content.trim().length > 10;
+          const contentText = (article.content || "").trim();
           const excerptText = article.excerpt || "";
+          const contentLen = contentText.replace(/<[^>]*>/g, "").length;
           const isExcerptLong = excerptText.length > 500;
+          // Content is "real" only if it exists AND is longer than a short stub
+          // If excerpt is much longer than content, excerpt IS the article body
+          const hasContent = contentLen > 100 && contentLen > excerptText.length * 0.3;
 
           // Process excerpt: convert \n to <br> for HTML rendering
           const processExcerpt = (text: string) => {
@@ -384,7 +388,7 @@ export default function ArticleDetailPage() {
                 className="article-body"
                 dangerouslySetInnerHTML={{
                   __html: hasContent
-                    ? processContent(article.content!)
+                    ? processContent(contentText)
                     : isExcerptLong
                       ? processContent(excerptText)
                       : ""
