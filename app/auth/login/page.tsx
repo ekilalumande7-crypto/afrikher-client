@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Mail, Lock, ArrowRight, Github } from "lucide-react";
+import { Mail, Lock, ArrowRight } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,12 +56,10 @@ export default function LoginPage() {
             AFRIKHER
           </Link>
           <h1 className="text-2xl font-display text-brand-cream mb-2">Bon retour parmi nous</h1>
-          <p className="text-brand-gray text-sm">Connectez-vous à votre espace personnel</p>
+          <p className="text-brand-gray text-sm">Connectez-vous a votre espace personnel</p>
         </div>
 
-        <div
-          className="bg-brand-charcoal p-8 border border-brand-gold/20 shadow-2xl"
-        >
+        <div className="bg-brand-charcoal p-8 border border-brand-gold/20 shadow-2xl">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-widest text-brand-gray font-bold">Email</label>
@@ -81,8 +79,8 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs uppercase tracking-widest text-brand-gray font-bold">Mot de passe</label>
-                <Link href="/auth/forgot-password" title="Mot de passe oublié ?" className="text-[10px] uppercase tracking-widest text-brand-gold hover:text-brand-cream transition-colors">
-                  Oublié ?
+                <Link href="/auth/forgot-password" title="Mot de passe oublie ?" className="text-[10px] uppercase tracking-widest text-brand-gold hover:text-brand-cream transition-colors">
+                  Oublie ?
                 </Link>
               </div>
               <div className="relative">
@@ -137,10 +135,23 @@ export default function LoginPage() {
         <p className="text-center mt-8 text-brand-gray text-sm">
           Pas encore de compte ?{" "}
           <Link href="/auth/register" className="text-brand-gold hover:text-brand-cream transition-colors">
-            Créer un compte
+            Creer un compte
           </Link>
         </p>
       </div>
     </main>
+  );
+}
+
+// Wrap in Suspense because useSearchParams requires it in Next.js 15
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-brand-dark flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
+      </main>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
