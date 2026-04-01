@@ -190,22 +190,43 @@ export default function CheckoutClient() {
     setSubmitting(true);
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session?.access_token) {
-        headers["Authorization"] = `Bearer ${session.access_token}`;
+      // ALWAYS get a fresh token before calling the API — never use stale session state
+      const { supabase } = await import("@/lib/supabase");
+      let freshToken: string | null = null;
+
+      // Try getSession first
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      freshToken = freshSession?.access_token || null;
+
+      // If no session, try refreshing
+      if (!freshToken) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        freshToken = refreshed?.session?.access_token || null;
       }
 
+      // If still no token, the user is truly not connected — redirect to login
+      if (!freshToken) {
+        const currentUrl = `/boutique/checkout?${searchParams.toString()}`;
+        window.location.href = `/auth/login?redirect=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${freshToken}`,
+      };
+
       // Save address to profile for next time
-      if (!isDigital && address && session?.user?.id) {
+      const userId = freshSession?.user?.id || session?.user?.id;
+      if (!isDigital && address && userId) {
         try {
-          const { supabase } = await import("@/lib/supabase");
           await supabase.from("profiles").update({
             phone,
             address,
             city,
             country,
             postal_code: postalCode,
-          }).eq("id", session.user.id);
+          }).eq("id", userId);
         } catch (e) { console.warn("Could not save address to profile:", e); }
       }
 
@@ -239,8 +260,52 @@ export default function CheckoutClient() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          router.push(`/auth/login?redirect=/boutique/checkout?${searchParams.toString()}`);
-          return;
+          // Do NOT redirect to login — the user IS connected, the token just failed
+          // Try one more refresh and retry
+          const { data: retry } = await supabase.auth.refreshSession();
+          if (retry?.session?.access_token) {
+            // Retry the API call with the new token
+            const retryResp = await fetch("/api/fidepay/checkout", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${retry.session.access_token}`,
+              },
+              body: JSON.stringify({
+                items: items.map(i => ({
+                  product_id: i.product_id,
+                  name: i.name,
+                  qty: i.qty,
+                  price: i.price,
+                })),
+                amount: total,
+                currency: "EUR",
+                customer_name: fullName,
+                customer_email: email,
+                shipping_address: isDigital ? null : {
+                  full_name: fullName,
+                  phone,
+                  address,
+                  city,
+                  country,
+                  postal_code: postalCode,
+                  notes,
+                },
+              }),
+            });
+            const retryData = await retryResp.json();
+            if (retryResp.ok) {
+              const paymentUrl = retryData.checkout_url || retryData.checkoutUrl || retryData.payment_url;
+              if (paymentUrl) {
+                window.location.href = paymentUrl;
+              } else {
+                router.push(`/boutique/merci?order=${retryData.order?.id}`);
+              }
+              return;
+            }
+          }
+          // If retry also fails, show error — never redirect to login in a loop
+          throw new Error("Session expirée. Veuillez rafraîchir la page et réessayer.");
         }
         throw new Error(data.error || "Erreur lors de la creation de la commande");
       }
