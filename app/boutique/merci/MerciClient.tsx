@@ -22,11 +22,11 @@ export default function MerciClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (orderId) loadOrder();
+    if (orderId) loadOrderAndConfirm();
     else setLoading(false);
   }, [orderId]);
 
-  async function loadOrder() {
+  async function loadOrderAndConfirm() {
     try {
       const { createClient } = await import("@supabase/supabase-js");
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,6 +34,26 @@ export default function MerciClient() {
       if (!url || !key) return;
       const supabase = createClient(url, key);
 
+      // Get current session for auth
+      const { data: { session } } = await supabase.auth.getSession();
+
+      // Fallback: confirm payment via API (in case webhook didn't fire)
+      if (session?.access_token) {
+        try {
+          await fetch("/api/fidepay/confirm-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ order_id: orderId }),
+          });
+        } catch (confirmErr) {
+          console.error("Confirm payment fallback error:", confirmErr);
+        }
+      }
+
+      // Load the order (now potentially updated to 'paid')
       const { data } = await supabase
         .from("orders")
         .select("*")

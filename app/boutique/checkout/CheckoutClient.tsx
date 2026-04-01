@@ -63,6 +63,14 @@ export default function CheckoutClient() {
       const supabase = createClient(url, key);
 
       const { data: { session: sess } } = await supabase.auth.getSession();
+
+      // Force authentication - redirect to login if not authenticated
+      if (!sess) {
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.href = `/auth/login?redirect=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+
       setSession(sess);
       if (sess?.user) {
         setEmail(sess.user.email || "");

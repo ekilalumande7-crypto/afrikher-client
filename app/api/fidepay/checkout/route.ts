@@ -41,19 +41,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Try to get user from auth header (optional - allows guest checkout)
-    let userId = null;
+    // Require authentication - guest checkout not allowed
     const authHeader = request.headers.get('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const { getAuthUser } = await import('@/lib/auth-helpers');
-        const authResult = await getAuthUser(request);
-        if (authResult?.user?.id) {
-          userId = authResult.user.id;
-        }
-      } catch {
-        // Guest checkout - no user ID
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    let userId = null;
+    try {
+      const { getAuthUser } = await import('@/lib/auth-helpers');
+      const authResult = await getAuthUser(request);
+      if (!authResult?.user?.id) {
+        return NextResponse.json(
+          { error: 'Invalid authentication' },
+          { status: 401 }
+        );
       }
+      userId = authResult.user.id;
+    } catch (authError) {
+      console.error('Auth error:', authError);
+      return NextResponse.json(
+        { error: 'Authentication failed' },
+        { status: 401 }
+      );
     }
 
     const supabase = getServiceRoleClient();
@@ -64,12 +77,12 @@ export async function POST(request: Request) {
       total: calculatedAmount,
       status: 'pending',
       customer_email,
-      shipping_address: shipping_address || null,
+      user_id: userId, // Now always required (authenticated users only)
+      shipping_address: shipping_address || {
+        full_name: customer_name || '',
+        phone: body.customer_phone || '',
+      },
     };
-    // Only include user_id if we have one (guest checkout = no user_id)
-    if (userId) {
-      orderData.user_id = userId;
-    }
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -104,19 +117,35 @@ export async function POST(request: Request) {
         customer_email: customer_email || '',
       });
 
+      // Extract transaction ID from FIDEPAY response (may be nested)
+      const paymentTxId = payment.transaction_id
+        || payment.data?.transaction_id
+        || payment.result?.transaction_id
+        || transactionId; // fallback to our generated ID
+
+      const paymentUrl = payment.checkout_url
+        || payment.payment_url
+        || payment.data?.checkout_url
+        || payment.data?.payment_url
+        || payment.result?.checkout_url
+        || payment.result?.payment_url;
+
+      console.log('FIDEPAY response:', JSON.stringify(payment).substring(0, 500));
+      console.log('Extracted txId:', paymentTxId, 'paymentUrl:', paymentUrl);
+
       // Update order with FidePay data
       await supabase
         .from('orders')
         .update({
-          fidepay_payment_id: payment.transaction_id,
-          fidepay_payment_url: payment.checkout_url || payment.payment_url,
+          fidepay_payment_id: paymentTxId,
+          fidepay_payment_url: paymentUrl || '',
         })
         .eq('id', order.id);
 
       return NextResponse.json({
         success: true,
         order,
-        checkout_url: payment.checkout_url || payment.payment_url,
+        checkout_url: paymentUrl,
       });
     } catch (fidepayError: any) {
       console.error('FidePay error:', fidepayError);
