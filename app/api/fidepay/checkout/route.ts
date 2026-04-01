@@ -87,7 +87,9 @@ export async function POST(request: Request) {
 
     // Create FidePay payment session
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://afrikher-client.vercel.app';
-    const transactionId = `ORDER_${order.id}`;
+    // FIDEPAY requires transaction_id <= 12 chars
+    const shortId = order.id.replace(/-/g, '').substring(0, 12).toUpperCase();
+    const transactionId = shortId;
 
     try {
       const payment = await createPayment({
