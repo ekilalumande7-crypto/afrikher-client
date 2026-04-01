@@ -243,7 +243,7 @@ export default function ArticleDetailPage() {
       {/* ── COVER IMAGE ── */}
       <div style={{ paddingTop: 80 }}>
         <div style={{
-          maxWidth: 1000, margin: "0 auto", padding: "32px 24px 0",
+          maxWidth: 780, margin: "0 auto", padding: "32px 24px 0",
         }}>
           {/* Back link */}
           <Link href="/blog" style={{
@@ -367,12 +367,14 @@ export default function ArticleDetailPage() {
                 <div
                   dangerouslySetInnerHTML={{ __html: processExcerpt(excerptText) }}
                   style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontSize: 22,
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 18,
                     fontStyle: "italic",
-                    color: "#4B5563",
-                    lineHeight: 1.6,
+                    color: "#6B7280",
+                    lineHeight: 1.8,
                     marginBottom: 40,
+                    paddingBottom: 32,
+                    borderBottom: "1px solid #E8E5DE",
                   }}
                 />
               )}
