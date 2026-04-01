@@ -45,6 +45,11 @@ export default function CheckoutClient() {
   // Payment method
   const [paymentMethod, setPaymentMethod] = useState<"fidepay">("fidepay");
 
+  // Saved address
+  const [hasSavedAddress, setHasSavedAddress] = useState(false);
+  const [useSavedAddress, setUseSavedAddress] = useState(true);
+  const [savedAddress, setSavedAddress] = useState({ address: "", city: "", country: "Belgique", postal_code: "", phone: "" });
+
   const productId = searchParams.get("product");
   const magazineSlug = searchParams.get("magazine");
   const initialQty = parseInt(searchParams.get("qty") || "1", 10);
@@ -76,10 +81,27 @@ export default function CheckoutClient() {
         setEmail(sess.user.email || "");
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name")
+          .select("full_name, phone, address, city, country, postal_code")
           .eq("id", sess.user.id)
           .single();
-        if (profile?.full_name) setFullName(profile.full_name);
+        if (profile) {
+          if (profile.full_name) setFullName(profile.full_name);
+          if (profile.phone) setPhone(profile.phone);
+          if (profile.address) {
+            setAddress(profile.address);
+            setCity(profile.city || "");
+            setCountry(profile.country || "Belgique");
+            setPostalCode(profile.postal_code || "");
+            setSavedAddress({
+              address: profile.address || "",
+              city: profile.city || "",
+              country: profile.country || "Belgique",
+              postal_code: profile.postal_code || "",
+              phone: profile.phone || "",
+            });
+            setHasSavedAddress(true);
+          }
+        }
       }
 
       if (productId) {
@@ -165,6 +187,24 @@ export default function CheckoutClient() {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (session?.access_token) {
         headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
+      // Save address to profile for next time
+      if (!isDigital && address && session?.user?.id) {
+        try {
+          const { createClient } = await import("@supabase/supabase-js");
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          );
+          await supabase.from("profiles").update({
+            phone,
+            address,
+            city,
+            country,
+            postal_code: postalCode,
+          }).eq("id", session.user.id);
+        } catch (e) { console.warn("Could not save address to profile:", e); }
       }
 
       const response = await fetch("/api/fidepay/checkout", {
@@ -385,6 +425,40 @@ export default function CheckoutClient() {
                         Adresse de livraison
                       </h2>
                       <p className="text-xs text-[#9A9A8A] mb-6">Ou souhaitez-vous etre livre(e) ?</p>
+
+                      {/* Saved address toggle */}
+                      {hasSavedAddress && (
+                        <div className="mb-5 p-4 bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-xl">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={useSavedAddress}
+                              onChange={(e) => {
+                                setUseSavedAddress(e.target.checked);
+                                if (e.target.checked) {
+                                  setAddress(savedAddress.address);
+                                  setCity(savedAddress.city);
+                                  setCountry(savedAddress.country);
+                                  setPostalCode(savedAddress.postal_code);
+                                  setPhone(savedAddress.phone);
+                                } else {
+                                  setAddress("");
+                                  setCity("");
+                                  setCountry("Belgique");
+                                  setPostalCode("");
+                                }
+                              }}
+                              className="w-4 h-4 accent-[#C9A84C]"
+                            />
+                            <div>
+                              <p className="text-sm font-bold text-[#0A0A0A]">Utiliser mon adresse enregistree</p>
+                              <p className="text-xs text-[#9A9A8A]">
+                                {savedAddress.address}, {savedAddress.postal_code} {savedAddress.city}, {savedAddress.country}
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                      )}
 
                       <div className="space-y-4">
                         {/* Address */}

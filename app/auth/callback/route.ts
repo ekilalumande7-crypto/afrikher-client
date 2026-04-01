@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
+  const redirectTo = requestUrl.searchParams.get('redirect') || '/dashboard';
 
   if (code) {
     const supabase = createClient(
@@ -13,5 +14,8 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Validate redirect URL — only allow internal paths (prevent open redirect)
+  const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/dashboard';
+
+  return NextResponse.redirect(new URL(safeRedirect, request.url));
 }
