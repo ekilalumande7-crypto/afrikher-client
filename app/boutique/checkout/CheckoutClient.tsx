@@ -233,6 +233,7 @@ export default function CheckoutClient() {
       const response = await fetch("/api/fidepay/checkout", {
         method: "POST",
         headers,
+        credentials: "same-origin",
         body: JSON.stringify({
           items: items.map(i => ({
             product_id: i.product_id,

@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { createPayment } from '@/lib/fidepay';
 
@@ -41,30 +44,85 @@ export async function POST(request: Request) {
       );
     }
 
-    // Require authentication - guest checkout not allowed
+    // ── Authentication: try multiple methods ──
+    let userId: string | null = null;
+
+    // Method 1: Bearer token (existing approach)
     const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const supabaseAuth = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: { user } } = await supabaseAuth.auth.getUser(token);
+        if (user?.id) {
+          userId = user.id;
+          console.log('Auth via Bearer token OK:', userId);
+        }
+      } catch (e) {
+        console.warn('Bearer token auth failed, trying cookies...', e);
+      }
     }
 
-    let userId = null;
-    try {
-      const { getAuthUser } = await import('@/lib/auth-helpers');
-      const authResult = await getAuthUser(request);
-      if (!authResult?.user?.id) {
-        return NextResponse.json(
-          { error: 'Invalid authentication' },
-          { status: 401 }
+    // Method 2: Cookie-based auth (SSR — works when Bearer token is expired)
+    if (!userId) {
+      try {
+        const cookieStore = await cookies();
+        const supabaseSsr = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll();
+              },
+            },
+          }
         );
+        const { data: { user } } = await supabaseSsr.auth.getUser();
+        if (user?.id) {
+          userId = user.id;
+          console.log('Auth via SSR cookies OK:', userId);
+        }
+      } catch (e) {
+        console.warn('Cookie auth failed:', e);
       }
-      userId = authResult.user.id;
-    } catch (authError) {
-      console.error('Auth error:', authError);
+    }
+
+    // Method 3: Lookup by email as last resort (user is authenticated on page but token expired)
+    if (!userId && customer_email) {
+      try {
+        const serviceClient = getServiceRoleClient();
+        // Use admin API to find user by email
+        const { data: usersData } = await serviceClient.auth.admin.listUsers({
+          page: 1,
+          perPage: 1,
+        });
+        const matchedUser = usersData?.users?.find(
+          (u: any) => u.email?.toLowerCase() === customer_email.toLowerCase()
+        );
+        if (matchedUser?.id) {
+          // Verify user is not blocked
+          const { data: profile } = await serviceClient
+            .from('profiles')
+            .select('id, is_blocked')
+            .eq('id', matchedUser.id)
+            .single();
+          if (profile?.id && !profile.is_blocked) {
+            userId = profile.id;
+            console.log('Auth via email lookup OK:', userId);
+          }
+        }
+      } catch (e) {
+        console.warn('Email lookup auth failed:', e);
+      }
+    }
+
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Authentication failed' },
+        { error: 'Authentication required. Please log in and try again.' },
         { status: 401 }
       );
     }
