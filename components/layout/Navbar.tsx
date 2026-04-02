@@ -77,10 +77,9 @@ export default function Navbar() {
     { id: "03", name: "Les Rubriques", href: "/rubriques" },
     { id: "04", name: "Qui sommes-nous", href: "/qui-sommes-nous" },
     { id: "05", name: "Boutique", href: "/boutique" },
-    { id: "06", name: "Blog", href: "/blog" },
-    { id: "07", name: "Abonnement", href: "/abonnement" },
-    { id: "08", name: "Contact", href: "/contact" },
-    { id: "09", name: "Partenaires", href: "/partenaires" },
+    { id: "06", name: "Abonnement", href: "/abonnement" },
+    { id: "07", name: "Contact", href: "/contact" },
+    { id: "08", name: "Partenaires", href: "/partenaires" },
   ];
 
   const closeAll = useCallback(() => {
