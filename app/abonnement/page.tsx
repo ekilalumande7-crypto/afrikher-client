@@ -1,58 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Check } from "lucide-react";
-const plans = [
-  {
-    id: "mensuel",
-    name: "Mensuel",
-    price: "15",
-    period: "mois",
-    description: "L'accès complet à l'univers AFRIKHER, mois après mois.",
-    features: [
-      "Accès illimité au journal numérique",
-      "Édition papier trimestrielle offerte",
-      "Newsletter exclusive 'Le Cercle'",
-      "Invitations aux webinaires mensuels",
-      "10% de réduction sur la boutique"
-    ],
-    cta: "S'abonner",
-    featured: false
-  },
-  {
-    id: "annuel",
-    name: "Annuel",
-    price: "150",
-    period: "an",
-    description: "Le choix de l'excellence et de l'engagement durable.",
-    features: [
-      "Tous les avantages du plan mensuel",
-      "2 mois offerts (économie de 30€)",
-      "Accès VIP aux événements physiques",
-      "Un coffret cadeau de bienvenue",
-      "20% de réduction sur la boutique",
-      "Accès aux archives historiques"
-    ],
-    cta: "S'abonner & Économiser",
-    featured: true
-  }
-];
+import { Check, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  featured: boolean;
+}
 
 export default function AbonnementsPage() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [config, setConfig] = useState<Record<string, string>>({});
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [faqItems, setFaqItems] = useState<FaqItem[]>([]);
+
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("site_config")
+          .select("key, value")
+          .like("key", "sub_%");
+
+        const configMap: Record<string, string> = {};
+        data?.forEach((row: { key: string; value: string }) => {
+          configMap[row.key] = row.value || "";
+        });
+        setConfig(configMap);
+
+        // Build plans from config
+        const builtPlans: Plan[] = [];
+
+        if (configMap.sub_monthly_name) {
+          builtPlans.push({
+            id: "monthly",
+            name: configMap.sub_monthly_name || "Mensuel",
+            price: configMap.sub_monthly_price || "15",
+            period: configMap.sub_monthly_period || "mois",
+            description: configMap.sub_monthly_description || "",
+            features: (configMap.sub_monthly_features || "").split("||").filter(Boolean),
+            cta: configMap.sub_monthly_cta || "S'abonner",
+            featured: false,
+          });
+        }
+
+        if (configMap.sub_annual_name) {
+          builtPlans.push({
+            id: "annual",
+            name: configMap.sub_annual_name || "Annuel",
+            price: configMap.sub_annual_price || "150",
+            period: configMap.sub_annual_period || "an",
+            description: configMap.sub_annual_description || "",
+            features: (configMap.sub_annual_features || "").split("||").filter(Boolean),
+            cta: configMap.sub_annual_cta || "S'abonner",
+            featured: configMap.sub_annual_featured === "true",
+          });
+        }
+
+        setPlans(builtPlans);
+
+        // Build FAQ items
+        const faqRaw = configMap.sub_faq_items || "";
+        if (faqRaw) {
+          const items = faqRaw.split("||||").filter(Boolean).map((pair) => {
+            const parts = pair.split("||");
+            return { question: parts[0] || "", answer: parts[1] || "" };
+          });
+          setFaqItems(items);
+        }
+      } catch (err) {
+        console.error("Error loading subscription config:", err);
+      } finally {
+        setPageLoading(false);
+      }
+    }
+    loadConfig();
+  }, []);
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId);
     try {
-      const res = await fetch("/api/stripe/subscribe", {
+      const res = await fetch("/api/fidepay/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ plan: planId === "monthly" ? "monthly" : "annual" }),
       });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
+      const data = await res.json();
+      if (data.checkoutUrl || data.checkout_url) {
+        window.location.href = data.checkoutUrl || data.checkout_url;
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -60,16 +112,51 @@ export default function AbonnementsPage() {
     }
   };
 
+  if (pageLoading) {
+    return (
+      <main className="min-h-screen bg-brand-cream text-brand-dark">
+        <Navbar />
+        <div className="flex items-center justify-center py-60">
+          <Loader2 size={40} className="animate-spin text-brand-gold" />
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  // If subscriptions are disabled
+  if (config.sub_enabled === "false") {
+    return (
+      <main className="min-h-screen bg-brand-cream text-brand-dark">
+        <Navbar />
+        <section className="pt-40 pb-40 px-6 bg-brand-dark text-brand-cream">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">Abonnements</h1>
+            <p className="text-brand-gold italic text-xl font-display mb-12">
+              Les abonnements seront bient\u00f4t disponibles.
+            </p>
+            <p className="text-brand-gray text-lg">
+              Nous pr\u00e9parons quelque chose d\u2019exceptionnel pour vous. Restez connect\u00e9e.
+            </p>
+          </div>
+        </section>
+        <Footer />
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-brand-cream text-brand-dark">
       <Navbar />
-      
+
       {/* Hero */}
       <section className="pt-40 pb-20 px-6 bg-brand-dark text-brand-cream">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">Abonnements</h1>
+          <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">
+            {config.sub_hero_title || "Abonnements"}
+          </h1>
           <p className="text-brand-gold italic text-xl font-display max-w-2xl mx-auto">
-            Rejoignez une communauté de femmes visionnaires. Choisissez votre expérience AFRIKHER.
+            {config.sub_hero_subtitle || "Rejoignez une communaut\u00e9 de femmes visionnaires."}
           </p>
         </div>
       </section>
@@ -77,11 +164,13 @@ export default function AbonnementsPage() {
       {/* Plans */}
       <section className="py-24 px-6">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-          {plans.map((plan, index) => (
+          {plans.map((plan) => (
             <div
               key={plan.id}
               className={`relative p-12 border ${
-                plan.featured ? "bg-brand-dark text-brand-cream border-brand-gold" : "bg-white text-brand-dark border-brand-charcoal/10"
+                plan.featured
+                  ? "bg-brand-dark text-brand-cream border-brand-gold"
+                  : "bg-white text-brand-dark border-brand-charcoal/10"
               } shadow-xl`}
             >
               {plan.featured && (
@@ -89,16 +178,14 @@ export default function AbonnementsPage() {
                   Le plus populaire
                 </div>
               )}
-              
+
               <div className="text-center mb-10">
                 <h3 className="text-3xl font-display font-bold mb-4">{plan.name}</h3>
                 <div className="flex items-end justify-center space-x-1">
-                  <span className="text-5xl font-display font-bold">{plan.price} €</span>
+                  <span className="text-5xl font-display font-bold">{plan.price} \u20ac</span>
                   <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
                 </div>
-                <p className={`mt-6 text-sm ${plan.featured ? "text-brand-gray" : "text-brand-gray"}`}>
-                  {plan.description}
-                </p>
+                <p className="mt-6 text-sm text-brand-gray">{plan.description}</p>
               </div>
 
               <ul className="space-y-4 mb-12">
@@ -116,8 +203,8 @@ export default function AbonnementsPage() {
                 onClick={() => handleSubscribe(plan.id)}
                 disabled={loading !== null}
                 className={`w-full py-4 font-medium uppercase tracking-widest transition-all duration-300 ${
-                  plan.featured 
-                    ? "bg-brand-gold text-brand-dark hover:bg-brand-cream" 
+                  plan.featured
+                    ? "bg-brand-gold text-brand-dark hover:bg-brand-cream"
                     : "bg-brand-dark text-brand-cream hover:bg-brand-gold hover:text-brand-dark"
                 }`}
               >
@@ -132,25 +219,33 @@ export default function AbonnementsPage() {
         </div>
       </section>
 
-      {/* FAQ Preview */}
-      <section className="py-24 px-6 bg-brand-dark text-brand-cream">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl font-display font-bold mb-8">Une question ?</h2>
-          <p className="text-brand-gray mb-12 font-light">
-            Notre équipe est à votre disposition pour vous accompagner dans votre choix. Contactez-nous à <span className="text-brand-gold">support@afrikher.com</span>
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-            <div className="space-y-2">
-              <h4 className="font-display text-lg text-brand-gold">Puis-je annuler à tout moment ?</h4>
-              <p className="text-sm text-brand-gray">Oui, l'abonnement mensuel est sans engagement. L'abonnement annuel est renouvelable à date anniversaire.</p>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-display text-lg text-brand-gold">Comment recevoir le magazine papier ?</h4>
-              <p className="text-sm text-brand-gray">Il est expédié automatiquement à l'adresse renseignée dans votre profil chaque trimestre.</p>
+      {/* FAQ */}
+      {faqItems.length > 0 && (
+        <section className="py-24 px-6 bg-brand-dark text-brand-cream">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-4xl font-display font-bold mb-8">
+              {config.sub_faq_title || "Une question ?"}
+            </h2>
+            <p className="text-brand-gray mb-12 font-light">
+              {config.sub_faq_text || "Notre \u00e9quipe est \u00e0 votre disposition."}
+              {config.sub_faq_email && (
+                <>
+                  {" "}Contactez-nous \u00e0{" "}
+                  <span className="text-brand-gold">{config.sub_faq_email}</span>
+                </>
+              )}
+            </p>
+            <div className={`grid grid-cols-1 ${faqItems.length > 1 ? "md:grid-cols-2" : ""} gap-8 text-left`}>
+              {faqItems.map((item, i) => (
+                <div key={i} className="space-y-2">
+                  <h4 className="font-display text-lg text-brand-gold">{item.question}</h4>
+                  <p className="text-sm text-brand-gray">{item.answer}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
     </main>
