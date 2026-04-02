@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Footer from "@/components/layout/Footer";
 import { ArrowRight, ShoppingBag, Eye, BookOpen, Clock, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -695,6 +696,7 @@ export default function MagazinePage() {
           </Link>
         </div>
       </div>
+          <Footer />
     </main>
   );
 }
