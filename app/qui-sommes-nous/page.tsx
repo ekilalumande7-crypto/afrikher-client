@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { Quote, Play } from "lucide-react";
 
 // ══════════════════════════════════════════════
@@ -484,6 +485,7 @@ export default function QuiSommesNousPage() {
         </section>
       )}
 
+          <Footer />
     </main>
   );
 }
