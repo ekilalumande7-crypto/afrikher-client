@@ -182,7 +182,7 @@ export default function AbonnementsPage() {
               <div className="text-center mb-10">
                 <h3 className="text-3xl font-display font-bold mb-4">{plan.name}</h3>
                 <div className="flex items-end justify-center space-x-1">
-                  <span className="text-5xl font-display font-bold">{plan.price} \u20ac</span>
+                  <span className="text-5xl font-display font-bold">{plan.price} €</span>
                   <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
                 </div>
                 <p className="mt-6 text-sm text-brand-gray">{plan.description}</p>
