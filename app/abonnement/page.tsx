@@ -20,6 +20,8 @@ interface Plan {
   features: string[];
   cta: string;
   featured: boolean;
+  originalPrice?: string;
+  discountLabel?: string;
 }
 
 export default function AbonnementsPage() {
@@ -181,9 +183,17 @@ export default function AbonnementsPage() {
 
               <div className="text-center mb-10">
                 <h3 className="text-3xl font-display font-bold mb-4">{plan.name}</h3>
-                <div className="flex items-end justify-center space-x-1">
-                  <span className="text-5xl font-display font-bold">{plan.price} €</span>
-                  <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
+                <div className="flex flex-col items-center">
+                  {plan.originalPrice && plan.discountLabel && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-brand-gray line-through text-xl font-display">{plan.originalPrice} €</span>
+                      <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">{plan.discountLabel}</span>
+                    </div>
+                  )}
+                  <div className="flex items-end justify-center space-x-1">
+                    <span className="text-5xl font-display font-bold">{plan.price} €</span>
+                    <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
+                  </div>
                 </div>
                 <p className="mt-6 text-sm text-brand-gray">{plan.description}</p>
               </div>
