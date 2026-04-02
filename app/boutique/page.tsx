@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { Search, ShoppingBag, SlidersHorizontal, ChevronDown } from "lucide-react";
 
 // ══════════════════════════════════════════════
@@ -304,6 +305,7 @@ export default function BoutiquePage() {
           </div>
         </div>
       </section>
+          <Footer />
     </main>
   );
 }
