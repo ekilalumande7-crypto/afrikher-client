@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { Clock, Search, ArrowRight, Camera } from "lucide-react";
 
@@ -505,6 +506,7 @@ export default function RubriquesPage() {
           )}
         </div>
       </section>
+          <Footer />
     </main>
   );
 }
