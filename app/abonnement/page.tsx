@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Check, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 interface FaqItem {
   question: string;
@@ -32,7 +32,7 @@ export default function AbonnementsPage() {
   useEffect(() => {
     async function loadConfig() {
       try {
-        const supabase = createClient();
+        // supabase imported from lib/supabase
         const { data } = await supabase
           .from("site_config")
           .select("key, value")
