@@ -1,7 +1,42 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Facebook, Instagram, Linkedin } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Footer() {
+  const [config, setConfig] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const { data } = await supabase
+          .from("site_config")
+          .select("key, value")
+          .or("key.like.contact_%,key.like.social_%");
+        const map: Record<string, string> = {};
+        data?.forEach((row: { key: string; value: string }) => {
+          map[row.key] = row.value || "";
+        });
+        setConfig(map);
+      } catch (err) {
+        console.error("Footer config load error:", err);
+      }
+    }
+    loadConfig();
+  }, []);
+
+  const email = config.contact_email || "contact@afrikher.com";
+  const addresses = [
+    config.contact_address_1,
+    config.contact_address_2,
+    config.contact_address_3,
+  ].filter(Boolean);
+  const socialInstagram = config.social_instagram || "#";
+  const socialFacebook = config.social_facebook || "#";
+  const socialLinkedin = config.social_linkedin || "#";
+
   return (
     <footer className="bg-black text-white py-24 px-6 border-t border-white/10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16">
@@ -10,16 +45,16 @@ export default function Footer() {
             AFRIKHER
           </Link>
           <p className="text-white/60 text-sm leading-relaxed max-w-xs font-body">
-            L'élégance hors du commun. Le Business au féminin. Le média de référence pour l'entrepreneuriat féminin en Afrique.
+            L’élégance hors du commun. Le Business au féminin. Le média de référence pour l’entrepreneuriat féminin en Afrique.
           </p>
           <div className="flex space-x-6">
-            <Link href="#" className="text-white/40 hover:text-brand-gold transition-colors">
+            <Link href={socialFacebook} className="text-white/40 hover:text-brand-gold transition-colors">
               <Facebook size={18} strokeWidth={1.5} />
             </Link>
-            <Link href="#" className="text-white/40 hover:text-brand-gold transition-colors">
+            <Link href={socialInstagram} className="text-white/40 hover:text-brand-gold transition-colors">
               <Instagram size={18} strokeWidth={1.5} />
             </Link>
-            <Link href="#" className="text-white/40 hover:text-brand-gold transition-colors">
+            <Link href={socialLinkedin} className="text-white/40 hover:text-brand-gold transition-colors">
               <Linkedin size={18} strokeWidth={1.5} />
             </Link>
           </div>
@@ -46,12 +81,18 @@ export default function Footer() {
         <div>
           <h4 className="font-display italic text-xl mb-8 text-white">Contact</h4>
           <ul className="space-y-4 text-sm text-white/60 font-body uppercase tracking-widest">
-            <li>contact@afrikher.com</li>
-            <li>Paris, France</li>
-            <li>Abidjan, Côte d'Ivoire</li>
+            <li>{email}</li>
+            {addresses.length > 0 ? (
+              addresses.map((addr, i) => <li key={i}>{addr}</li>)
+            ) : (
+              <>
+                <li>Waterloo, Belgique</li>
+              </>
+            )}
           </ul>
         </div>
       </div>
+
       <div className="max-w-7xl mx-auto mt-24 pt-8 border-t border-white/10 text-center text-[10px] text-white/40 font-body uppercase tracking-[0.2em]">
         © {new Date().getFullYear()} AFRIKHER. Tous droits réservés.
       </div>
