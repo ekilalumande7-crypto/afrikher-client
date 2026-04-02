@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Link from "next/link";
-import { Clock, Search, ArrowRight } from "lucide-react";
+import { Clock, Search, ArrowRight, Camera } from "lucide-react";
 
 // ââââââââââââââââââââââââââââââââââââââââââââââ
 // TYPES
@@ -26,6 +26,15 @@ interface Category {
   name: string;
   slug: string;
   description: string | null;
+}
+
+interface GalleryItem {
+  id: string;
+  title: string | null;
+  description: string | null;
+  image_url: string;
+  category: string | null;
+  featured: boolean;
 }
 
 interface SiteConfig {
@@ -52,6 +61,7 @@ export default function RubriquesPage() {
   const [loading, setLoading] = useState(true);
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeCategory, setActiveCategory] = useState("all");
@@ -72,7 +82,7 @@ export default function RubriquesPage() {
         const supabase = createClient(supabaseUrl, supabaseKey);
 
         // Fetch all data in parallel
-        const [articlesRes, blogRes, categoriesRes, configRes] = await Promise.all([
+        const [articlesRes, blogRes, categoriesRes, configRes, galleryRes] = await Promise.all([
           supabase
             .from("articles")
             .select("*, categories(name, slug)")
@@ -91,6 +101,11 @@ export default function RubriquesPage() {
             .from("site_config")
             .select("key, value")
             .like("key", "rubriques_%"),
+          supabase
+            .from("gallery_items")
+            .select("*")
+            .order("sort_order", { ascending: true })
+            .limit(4),
         ]);
 
         // Build config
@@ -102,6 +117,9 @@ export default function RubriquesPage() {
 
         // Categories
         setCategories(categoriesRes.data || []);
+
+        // Gallery
+        setGallery(galleryRes.data || []);
 
         // Merge articles + blog posts
         const editorialItems: ContentItem[] = (articlesRes.data || []).map((a: any) => ({
@@ -195,6 +213,9 @@ export default function RubriquesPage() {
   // RENDER
   // ââââââââââââââââââââââââââââââââââââââââââââââ
 
+  const editorialImage = siteConfig["rubriques_editorial_image"] || "";
+  const editorialCitation = siteConfig["rubriques_editorial_citation"] || "";
+
   return (
     <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
       {/* Bandeau noir pour le header */}
@@ -210,14 +231,14 @@ export default function RubriquesPage() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
             <div>
               <p className="font-body text-xs tracking-[0.3em] uppercase text-[#C9A84C] mb-2">
-                {siteConfig["rubriques_editorial_titre"] || "Editorial"}
+                {siteConfig["rubriques_editorial_titre"] || "Ãditorial"}
               </p>
               <h1 className="font-display text-3xl md:text-4xl text-[#0A0A0A] leading-tight">
                 Les Rubriques<span className="text-[#C9A84C]">.</span>
               </h1>
               <p className="font-body text-sm text-[#9A9A8A] mt-1">
                 {siteConfig["rubriques_editorial_sous_titre"] ||
-                  "Articles, interviews et analyses pour les femmes qui batissent l'Afrique."}
+                  "Le Sommaire d'AFRIKHER"}
               </p>
             </div>
 
@@ -237,10 +258,84 @@ export default function RubriquesPage() {
             </div>
           </div>
 
-          {/* Separateur */}
+          {/* SÃ©parateur */}
           <div className="h-[1px] bg-gradient-to-r from-[#C9A84C]/30 via-[#C9A84C]/10 to-transparent" />
         </div>
       </section>
+
+      {/* ââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* SECTION ÃDITORIALE COMPACTE (image + citation) */}
+      {/* ââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {(editorialImage || editorialCitation) && (
+        <section className="pb-8 bg-[#F5F0E8]">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6 py-6 px-8 bg-white/60 rounded-2xl border border-[#E8E5DE]">
+              {/* Image ronde */}
+              {editorialImage && (
+                <div className="shrink-0">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#C9A84C]/30">
+                    <img
+                      src={editorialImage}
+                      alt="Ãditorial"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              {/* Citation */}
+              {editorialCitation && (
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="font-display text-base md:text-lg italic text-[#2A2A2A] leading-relaxed">
+                    &ldquo;{editorialCitation}&rdquo;
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* GALERIE PHOTOS (max 4 images) */}
+      {/* ââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {gallery.length > 0 && (
+        <section className="pb-8 bg-[#F5F0E8]">
+          <div className="max-w-6xl mx-auto px-6">
+            {/* Titre galerie */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Camera size={14} className="text-[#C9A84C]" />
+                <p className="font-body text-xs tracking-[0.2em] uppercase text-[#9A9A8A]">
+                  Galerie
+                </p>
+              </div>
+            </div>
+            {/* Grille photos */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {gallery.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative aspect-square overflow-hidden rounded-xl bg-[#2A2A2A]"
+                >
+                  <img
+                    src={item.image_url}
+                    alt={item.title || "Galerie AFRIKHER"}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {item.title && (
+                    <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <p className="font-body text-xs text-white/90 truncate">
+                        {item.title}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ââââââââââââââââââââââââââââââââââââââââââââââ */}
       {/* CATEGORIES (petites cartes horizontales) */}
@@ -319,7 +414,7 @@ export default function RubriquesPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <p className="font-display text-2xl text-[#9A9A8A] mb-4">
-                Aucun article trouve
+                Aucun article trouvÃ©
               </p>
               <button
                 onClick={() => {
@@ -365,7 +460,7 @@ export default function RubriquesPage() {
                         )}
                       </div>
 
-                      {/* Categorie + type */}
+                      {/* CatÃ©gorie + type */}
                       <div className="flex items-center gap-2 mb-2">
                         {item.category && (
                           <span className="font-body text-[10px] tracking-[0.15em] uppercase text-[#C9A84C]">
