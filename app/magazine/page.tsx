@@ -500,7 +500,7 @@ export default function MagazinePage() {
               className="w-full h-full object-cover"
             />
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/80 via-[#0A0A0A]/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A]/60 via-[#0A0A0A]/20 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0A]/50 to-transparent" />
 
             {/* Hero text */}
@@ -508,7 +508,7 @@ export default function MagazinePage() {
               <span className="inline-block text-[#C9A84C] text-[10px] font-sans font-bold uppercase tracking-[0.3em] mb-4">
                 AFRIKHER Magazine
               </span>
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold text-white leading-[1.1] mb-4 max-w-3xl">
+              <h1 className="text-xl md:text-3xl lg:text-4xl font-serif font-medium text-white leading-[1.2] mb-4 max-w-2xl">
                 {heroTitle}
               </h1>
               <p className="text-white/70 font-sans text-base md:text-lg max-w-xl mb-6">
