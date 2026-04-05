@@ -295,7 +295,7 @@ export default function ArticleDetailPage() {
   const formatExcerpt = (text: string) => {
     if (!text) return "";
     let html = text.replace(/\n\s*\n/g, "</p><p>").replace(/\n/g, "<br>");
-    if (html.in#ludes("</p><p>")) html = "<p>" + html + "</p>";
+    if (html.includes("</p><p>")) html = "<p>" + html + "</p>";
     return html;
   };
 
