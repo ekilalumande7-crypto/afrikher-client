@@ -11,7 +11,7 @@ interface Magazine {
   title: string;
   slug: string;
   description: string;
-  cover_image: string;
+  cover_image: string
   price: number;
   currency: string;
   page_count: number;
@@ -660,14 +660,14 @@ export default function MagazinePage() {
       <section className="bg-[#0A0A0A] py-16 md:py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <span className="text-[#C9A84C] text-[10px] font-sans font-bold uppercase tracking-[0.3em] block mb-4">
-            Acces premium
+            Accès premium
           </span>
           <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#F5F0E8] mb-4">
-            Ne manquez aucun numero
+            Ne manquez aucun numéro
           </h2>
           <p className="text-[#9A9A8A] font-sans text-lg mb-8 leading-relaxed">
-            Abonnez-vous et recevez chaque edition directement dans votre espace personnel.
-            Acces illimite a tous les contenus, interviews exclusives et analyses.
+            Abonnez-vous et recevez chaque édition directement dans votre espace personnel.
+            Accès illimité à tous les contenus, interviews exclusives et analyses.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
