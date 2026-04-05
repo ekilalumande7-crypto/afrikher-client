@@ -59,6 +59,8 @@ export default function AbonnementsPage() {
             features: (configMap.sub_monthly_features || "").split("||").filter(Boolean),
             cta: configMap.sub_monthly_cta || "S'abonner",
             featured: false,
+            originalPrice: configMap.sub_monthly_original_price || "",
+            discountLabel: configMap.sub_monthly_discount_label || "",
           });
         }
 
@@ -66,12 +68,14 @@ export default function AbonnementsPage() {
           builtPlans.push({
             id: "annual",
             name: configMap.sub_annual_name || "Annuel",
-            price: configMap.sub_annual_price || "150",
+            price: configMap.sub_annual_price || "",
             period: configMap.sub_annual_period || "an",
             description: configMap.sub_annual_description || "",
             features: (configMap.sub_annual_features || "").split("||").filter(Boolean),
             cta: configMap.sub_annual_cta || "S'abonner",
             featured: configMap.sub_annual_featured === "true",
+            originalPrice: configMap.sub_annual_original_price || "",
+            discountLabel: configMap.sub_annual_discount_label || "",
           });
         }
 
@@ -183,18 +187,22 @@ export default function AbonnementsPage() {
 
               <div className="text-center mb-10">
                 <h3 className="text-3xl font-display font-bold mb-4">{plan.name}</h3>
-                <div className="flex flex-col items-center">
-                  {plan.originalPrice && plan.discountLabel && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-brand-gray line-through text-xl font-display">{plan.originalPrice} €</span>
-                      <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">{plan.discountLabel}</span>
+                {plan.price && plan.price.trim() !== "" && (
+                  <div className="flex flex-col items-center">
+                    {plan.originalPrice && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-brand-gray line-through text-xl font-display">{plan.originalPrice} €</span>
+                        {plan.discountLabel && (
+                          <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">{plan.discountLabel}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-end justify-center space-x-1">
+                      <span className="text-5xl font-display font-bold">{plan.price} €</span>
+                      <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
                     </div>
-                  )}
-                  <div className="flex items-end justify-center space-x-1">
-                    <span className="text-5xl font-display font-bold">{plan.price} €</span>
-                    <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
                   </div>
-                </div>
+                )}
                 <p className="mt-6 text-sm text-brand-gray">{plan.description}</p>
               </div>
 
