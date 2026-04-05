@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
-import { ShoppingBag, ChevronLeft, ChevronRight, Minus, Plus, ArrowLeft } from "lucide-react";
+import { ShoppingBag, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 
 // ══════════════════════════════════════════════
 // TYPES
@@ -13,7 +13,8 @@ interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number | null;
+  external_url: string | null;
   images: string[];
   type: string;
   stock: number;
@@ -39,8 +40,6 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
   const [related, setRelated] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [checkingOut, setCheckingOut] = useState(false);
 
   // ══════════════════════════════════════════════
   // FETCH
@@ -94,13 +93,12 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
   }, [idParam]);
 
   // ══════════════════════════════════════════════
-  // CHECKOUT
+  // EXTERNAL LINK
   // ══════════════════════════════════════════════
 
-  const handleCheckout = () => {
-    if (!product) return;
-    // Redirect to checkout page with product info
-    window.location.href = `/boutique/checkout?product=${product.id}&qty=${quantity}`;
+  const handleVisitPartner = () => {
+    if (!product?.external_url) return;
+    window.open(product.external_url, "_blank", "noopener,noreferrer");
   };
 
   // ══════════════════════════════════════════════
@@ -136,7 +134,6 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
   }
 
   const images = product.images.length > 0 ? product.images : [];
-  const inStock = product.unlimited || product.stock > 0;
 
   return (
     <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
@@ -226,11 +223,6 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
                 {product.name}
               </h1>
 
-              {/* Price */}
-              <p className="font-display text-2xl md:text-3xl text-[#C9A84C]">
-                {product.price.toFixed(2)} €
-              </p>
-
               {/* Description */}
               {product.description && (
                 <p className="font-body text-sm md:text-base text-[#2A2A2A]/80 leading-relaxed whitespace-pre-line">
@@ -238,61 +230,28 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
                 </p>
               )}
 
-              {/* Stock indicator */}
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${inStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <span className={`font-body text-xs ${inStock ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {product.unlimited ? 'Disponible' :
-                   product.stock > 10 ? 'En stock' :
-                   product.stock > 0 ? `Plus que ${product.stock} en stock` :
-                   'Rupture de stock'}
-                </span>
-              </div>
-
-              {/* Quantity & Buy */}
-              {inStock && (
-                <div className="space-y-4 pt-4 border-t border-[#0A0A0A]/5">
-                  {/* Quantity selector */}
-                  <div className="flex items-center space-x-4">
-                    <span className="font-body text-xs tracking-[0.1em] uppercase text-[#9A9A8A]">Quantité</span>
-                    <div className="flex items-center border border-[#0A0A0A]/10 rounded-full overflow-hidden">
-                      <button
-                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        className="w-10 h-10 flex items-center justify-center text-[#0A0A0A] hover:bg-[#0A0A0A]/5 transition-colors"
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="w-12 text-center font-body text-sm font-bold">{quantity}</span>
-                      <button
-                        onClick={() => setQuantity(q => product.unlimited ? q + 1 : Math.min(product.stock, q + 1))}
-                        className="w-10 h-10 flex items-center justify-center text-[#0A0A0A] hover:bg-[#0A0A0A]/5 transition-colors"
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Buy button */}
-                  <button
-                    onClick={handleCheckout}
-                    disabled={checkingOut}
-                    className="w-full py-4 bg-[#0A0A0A] text-[#F5F0E8] font-body text-xs tracking-[0.2em] uppercase font-bold rounded-full hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-300 flex items-center justify-center space-x-3"
-                  >
-                    {checkingOut ? (
-                      <div className="w-5 h-5 border-2 border-[#F5F0E8] border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <ShoppingBag size={18} />
-                        <span>Acheter — {(product.price * quantity).toFixed(2)} €</span>
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-center font-body text-[10px] text-[#9A9A8A] tracking-[0.1em] uppercase">
-                    Paiement sécurisé via FIDEPAY
+              {/* Partner CTA */}
+              <div className="space-y-4 pt-4 border-t border-[#0A0A0A]/5">
+                {product.external_url ? (
+                  <>
+                    <button
+                      onClick={handleVisitPartner}
+                      className="w-full py-4 bg-[#0A0A0A] text-[#F5F0E8] font-body text-xs tracking-[0.2em] uppercase font-bold rounded-full hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-300 flex items-center justify-center space-x-3"
+                    >
+                      <ShoppingBag size={18} />
+                      <span>Commander chez le partenaire</span>
+                      <ExternalLink size={16} />
+                    </button>
+                    <p className="text-center font-body text-[10px] text-[#9A9A8A] tracking-[0.1em] uppercase">
+                      Vous serez redirig&eacute;&middot;e vers le site du partenaire
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-center font-body text-xs text-[#9A9A8A] italic">
+                    Lien partenaire &agrave; venir
                   </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -327,7 +286,7 @@ export default function ProductDetailPage({ id: idParam }: { id: string }) {
                     <div className="absolute inset-0 bg-[#0A0A0A]/0 group-hover:bg-[#0A0A0A]/10 transition-colors duration-500" />
                   </div>
                   <h3 className="font-body text-sm font-medium text-[#0A0A0A] mb-1 group-hover:text-[#C9A84C] transition-colors line-clamp-2">{p.name}</h3>
-                  <p className="font-body text-sm font-bold text-[#0A0A0A]">{p.price.toFixed(2)} €</p>
+                  <p className="font-body text-[11px] tracking-[0.15em] uppercase text-[#C9A84C] font-bold">D&eacute;couvrir &rarr;</p>
                 </Link>
               ))}
             </div>

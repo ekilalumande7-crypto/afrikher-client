@@ -14,7 +14,8 @@ interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number | null;
+  external_url: string | null;
   images: string[];
   type: string;
   stock: number;
@@ -255,8 +256,8 @@ export default function BoutiquePage() {
                       <h3 className="font-body text-sm font-medium text-[#0A0A0A] leading-snug mb-1 group-hover:text-[#C9A84C] transition-colors duration-300 line-clamp-2">
                         {product.name}
                       </h3>
-                      <p className="font-body text-sm font-bold text-[#0A0A0A]">
-                        {product.price.toFixed(2)} €
+                      <p className="font-body text-[11px] tracking-[0.15em] uppercase text-[#C9A84C] font-bold mt-2">
+                        D&eacute;couvrir &rarr;
                       </p>
                     </div>
                   </Link>
