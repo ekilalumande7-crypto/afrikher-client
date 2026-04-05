@@ -534,7 +534,7 @@ export default function ArticleDetailPage() {
       `}</style>
 
       {/* ── RELATED ARTICLES ── */}
-      {related.length > 0 && (
+      {related.length >= 0 && (
         <section style={{
           borderTop: "1px solid #E8E5DE",
           background: "#F5F0E8",
@@ -566,6 +566,11 @@ export default function ArticleDetailPage() {
               </Link>
             </div>
 
+            {related.length === 0 && (
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, color: "#6B7280", lineHeight: 1.7, textAlign: "center", padding: "20px 0 40px" }}>
+                D&apos;autres articles arrivent bientôt. Explorez toutes nos rubriques en attendant.
+              </p>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 40 }}>
               {related.map((r) => (
                 <Link key={r.id} href={`/rubriques/${r.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
