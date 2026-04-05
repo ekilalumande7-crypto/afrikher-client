@@ -295,7 +295,7 @@ export default function ArticleDetailPage() {
   const formatExcerpt = (text: string) => {
     if (!text) return "";
     let html = text.replace(/\n\s*\n/g, "</p><p>").replace(/\n/g, "<br>");
-    if (html.includes("</p><p>")) html = "<p>" + html + "</p>";
+    if (html.in#ludes("</p><p>")) html = "<p>" + html + "</p>";
     return html;
   };
 
@@ -383,124 +383,59 @@ export default function ArticleDetailPage() {
         </h1>
       </div>
 
-      {/* ── TWO COLUMN LAYOUT: SIDEBAR TOC + CONTENT ── */}
+      {/* ── FULL-WIDTH CONTENT (aligned with hero image) ── */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
-        <div className="article-layout" style={{
-          display: "grid",
-          gridTemplateColumns: "220px 1fr",
-          gap: 80,
-          alignItems: "start",
-        }}>
-          {/* ── SIDEBAR TOC ── */}
-          <aside className="article-sidebar" style={{
-            position: "sticky",
-            top: 100,
-            alignSelf: "start",
-          }}>
-            {processed.toc.length > 0 && (
-              <>
-                <div style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 10, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.15em",
-                  color: "#9A9A8A",
-                  paddingBottom: 14,
-                  marginBottom: 14,
-                  borderBottom: "1px solid #E8E5DE",
-                }}>
-                  Sommaire
-                </div>
-                <nav style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {processed.toc.map((item) => {
-                    const isActive = activeToc === item.id;
-                    return (
-                      <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const el = document.getElementById(item.id);
-                          if (el) {
-                            const y = el.getBoundingClientRect().top + window.pageYOffset - 100;
-                            window.scrollTo({ top: y, behavior: "smooth" });
-                          }
-                        }}
-                        style={{
-                          fontFamily: "'DM Sans', sans-serif",
-                          fontSize: 13,
-                          fontWeight: isActive ? 600 : 400,
-                          color: isActive ? "#0A0A0A" : "#6B7280",
-                          textDecoration: "none",
-                          lineHeight: 1.5,
-                          paddingLeft: item.level === 3 ? 14 : 0,
-                          borderLeft: isActive ? "2px solid #C9A84C" : "2px solid transparent",
-                          paddingLeftBorder: isActive ? 10 : 0,
-                          marginLeft: isActive ? -12 : 0,
-                          transition: "all 0.2s",
-                        } as React.CSSProperties}
-                        className={isActive ? "toc-active" : ""}
-                      >
-                        {item.text}
-                      </a>
-                    );
-                  })}
-                </nav>
-              </>
-            )}
-          </aside>
-
-          {/* ── MAIN CONTENT ── */}
-          <article ref={articleRef} style={{ maxWidth: 720, minWidth: 0 }}>
-            {/* Italic intro (excerpt) */}
-            {showExcerptAsIntro && (
-              <div
-                dangerouslySetInnerHTML={{ __html: formatExcerpt(excerptText) }}
-                style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: 24,
-                  fontStyle: "italic",
-                  color: "#1A1A1A",
-                  lineHeight: 1.5,
-                  marginBottom: 48,
-                  letterSpacing: "0.005em",
-                }}
-              />
-            )}
-
-            {/* Main body */}
+        <article ref={articleRef} style={{ width: "100%" }}>
+          {/* Italic intro (excerpt) */}
+          {showExcerptAsIntro && (
             <div
-              className="article-body"
-              dangerouslySetInnerHTML={{ __html: processed.html }}
+              dangerouslySetInnerHTML={{ __html: formatExcerpt(excerptText) }}
               style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 16,
-                lineHeight: 1.85,
-                color: "#374151",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: 26,
+                fontStyle: "italic",
+                color: "#1A1A1A",
+                lineHeight: 1.5,
+                marginBottom: 48,
+                letterSpacing: "0.005em",
               }}
             />
-          </article>
-        </div>
+          )}
+
+          {/* Main body */}
+          <div
+            className="article-body"
+            dangerouslySetInnerHTML={{ __html: processed.html }}
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: 21,
+              lineHeight: 1.65,
+              color: "#1A1A1A",
+            }}
+          />
+        </article>
       </div>
 
       {/* Responsive + content styles */}
       <style>{`
-        @media (max-width: 968px) {
-          .article-layout { grid-template-columns: 1fr !important; gap: 32px !important; }
-          .article-sidebar { position: static !important; }
-        }
-        .toc-active {
-          padding-left: 10px !important;
-          margin-left: -12px !important;
-          border-left: 2px solid #C9A84C !important;
+        @media (max-width: 768px) {
+          .article-body { font-size: 18px !important; }
+          .article-body p { font-size: 18px !important; }
+          .article-body li { font-size: 18px !important; }
+          .article-body h1, .article-body h2 { font-size: 30px !important; }
+          .article-body h3 { font-size: 24px !important; }
         }
         .article-body p {
-          margin: 0 0 1.5em;
-          line-height: 1.85;
+          margin: 0 0 1.2em;
+          line-height: 1.65;
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 21px;
+          color: #1A1A1A;
         }
         .article-body h1,
         .article-body h2 {
           font-family: 'Cormorant Garamond', Georgia, serif;
-          font-size: 34px;
+          font-size: 38px;
           font-weight: 600;
           color: #0A0A0A;
           margin: 64px 0 20px;
@@ -511,7 +446,7 @@ export default function ArticleDetailPage() {
         }
         .article-body h3 {
           font-family: 'Cormorant Garamond', Georgia, serif;
-          font-size: 26px;
+          font-size: 30px;
           font-weight: 600;
           color: #1A1A1A;
           margin: 44px 0 14px;
@@ -524,9 +459,13 @@ export default function ArticleDetailPage() {
           margin: 32px 0;
           font-family: 'Cormorant Garamond', Georgia, serif;
           font-style: italic;
-          font-size: 22px;
+          font-size: 26px;
           color: #1A1A1A;
           line-height: 1.5;
+        }
+        .article-body blockquote p {
+          font-size: 26px;
+          font-style: italic;
         }
         .article-body blockquote p { margin: 0 0 0.4em; }
         .article-body blockquote p:last-child { margin-bottom: 0; }
@@ -554,7 +493,13 @@ export default function ArticleDetailPage() {
         }
         .article-body a:hover { color: #B8942F; }
         .article-body ul, .article-body ol { padding-left: 24px; margin: 0 0 1.5em; }
-        .article-body li { margin-bottom: 10px; line-height: 1.75; }
+        .article-body li {
+          margin-bottom: 10px;
+          line-height: 1.65;
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 21px;
+          color: #1A1A1A;
+        }
         .article-body strong { color: #0A0A0A; font-weight: 600; }
         .article-body em { font-style: italic; }
         .article-body code {
@@ -577,9 +522,14 @@ export default function ArticleDetailPage() {
           padding: 24px 28px;
           margin: 36px 0;
           border-radius: 0 4px 4px 0;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 15px;
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 20px;
           color: #1A1A1A;
+        }
+        .article-body .callout p,
+        .article-body aside p {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 20px;
         }
       `}</style>
 
