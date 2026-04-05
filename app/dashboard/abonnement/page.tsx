@@ -16,27 +16,100 @@ interface Subscription {
   created_at: string;
 }
 
+interface PlanInfo {
+  price: string;
+  period: string;
+  originalPrice: string;
+  discountLabel: string;
+  name: string;
+}
+
 export default function AbonnementPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [monthlyPlan, setMonthlyPlan] = useState<PlanInfo>({
+    price: "",
+    period: "mois",
+    originalPrice: "",
+    discountLabel: "",
+    name: "Mensuel",
+  });
+  const [annualPlan, setAnnualPlan] = useState<PlanInfo>({
+    price: "",
+    period: "an",
+    originalPrice: "",
+    discountLabel: "",
+    name: "Annuel",
+  });
 
   useEffect(() => {
-    const fetchSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const fetchData = async () => {
+      // Load plan pricing from site_config
+      const { data: configData } = await supabase
+        .from("site_config")
+        .select("key, value")
+        .like("key", "sub_%");
 
-      const { data, error } = await supabase
+      const configMap: Record<string, string> = {};
+      configData?.forEach((row: { key: string; value: string }) => {
+        configMap[row.key] = row.value || "";
+      });
+
+      setMonthlyPlan({
+        name: configMap.sub_monthly_name || "Mensuel",
+        price: configMap.sub_monthly_price || "",
+        period: configMap.sub_monthly_period || "mois",
+        originalPrice: configMap.sub_monthly_original_price || "",
+        discountLabel: configMap.sub_monthly_discount_label || "",
+      });
+      setAnnualPlan({
+        name: configMap.sub_annual_name || "Annuel",
+        price: configMap.sub_annual_price || "",
+        period: configMap.sub_annual_period || "an",
+        originalPrice: configMap.sub_annual_original_price || "",
+        discountLabel: configMap.sub_annual_discount_label || "",
+      });
+
+      // Load subscription (by user_id OR customer_email fallback)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Try by user_id first
+      const { data: subByUser } = await supabase
         .from("subscriptions")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (data && !error) {
-        setSubscription(data);
+      if (subByUser) {
+        setSubscription(subByUser);
+      } else if (user.email) {
+        // Fallback : search by customer_email (orphan subscriptions)
+        const { data: subByEmail } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("customer_email", user.email)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (subByEmail) {
+          setSubscription(subByEmail);
+          // Link it to user_id for future lookups
+          await supabase
+            .from("subscriptions")
+            .update({ user_id: user.id })
+            .eq("id", subByEmail.id);
+        }
       }
       setLoading(false);
     };
-    fetchSubscription();
+    fetchData();
   }, []);
 
   if (loading) {
@@ -98,9 +171,23 @@ export default function AbonnementPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg mx-auto">
               <div className="border border-[#C9A84C]/30 p-6 text-center hover:border-[#C9A84C] transition-colors">
-                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">Mensuel</p>
-                <p className="text-3xl font-display font-bold mb-1">9,99 €</p>
-                <p className="text-[#9A9A8A] text-xs mb-4">par mois</p>
+                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">{monthlyPlan.name}</p>
+                {monthlyPlan.price && monthlyPlan.price.trim() !== "" ? (
+                  <>
+                    {monthlyPlan.originalPrice && (
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <span className="text-[#9A9A8A] line-through text-sm">{monthlyPlan.originalPrice} €</span>
+                        {monthlyPlan.discountLabel && (
+                          <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{monthlyPlan.discountLabel}</span>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-3xl font-display font-bold mb-1">{monthlyPlan.price} €</p>
+                    <p className="text-[#9A9A8A] text-xs mb-4">par {monthlyPlan.period}</p>
+                  </>
+                ) : (
+                  <p className="text-[#9A9A8A] text-xs mb-4 mt-4">Bientôt disponible</p>
+                )}
                 <Link
                   href="/abonnement"
                   className="block w-full py-3 bg-[#0A0A0A] text-[#F5F0E8] text-xs uppercase tracking-widest font-bold hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all text-center"
@@ -112,9 +199,23 @@ export default function AbonnementPage() {
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-[#C9A84C] text-[#0A0A0A] text-[9px] uppercase tracking-widest font-bold">
                   Populaire
                 </span>
-                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">Annuel</p>
-                <p className="text-3xl font-display font-bold mb-1">89,99 €</p>
-                <p className="text-[#9A9A8A] text-xs mb-4">par an (2 mois offerts)</p>
+                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">{annualPlan.name}</p>
+                {annualPlan.price && annualPlan.price.trim() !== "" ? (
+                  <>
+                    {annualPlan.originalPrice && (
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <span className="text-[#9A9A8A] line-through text-sm">{annualPlan.originalPrice} €</span>
+                        {annualPlan.discountLabel && (
+                          <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{annualPlan.discountLabel}</span>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-3xl font-display font-bold mb-1">{annualPlan.price} €</p>
+                    <p className="text-[#9A9A8A] text-xs mb-4">par {annualPlan.period}</p>
+                  </>
+                ) : (
+                  <p className="text-[#9A9A8A] text-xs mb-4 mt-4">Bientôt disponible</p>
+                )}
                 <Link
                   href="/abonnement"
                   className="block w-full py-3 bg-[#C9A84C] text-[#0A0A0A] text-xs uppercase tracking-widest font-bold hover:bg-[#E8C97A] transition-all text-center"

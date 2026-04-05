@@ -3,16 +3,6 @@ import { getServiceRoleClient } from '@/lib/supabase';
 import { createPayment } from '@/lib/fidepay';
 import { requireAuth } from '@/lib/auth-helpers';
 
-interface SubscriptionPlanPricing {
-  monthly: number;
-  annual: number;
-}
-
-const SUBSCRIPTION_PRICING: SubscriptionPlanPricing = {
-  monthly: 9.99,
-  annual: 99.90,
-};
-
 export async function POST(request: Request) {
   try {
     const authResult = await requireAuth(request);
@@ -35,39 +25,80 @@ export async function POST(request: Request) {
 
     const supabase = getServiceRoleClient();
     const userId = authResult.user?.id;
-    const amount = SUBSCRIPTION_PRICING[plan as keyof SubscriptionPlanPricing];
+    const userEmail = authResult.user?.email || null;
 
-    // Check if user already has an active subscription
-    const { data: existingSubscription } = await supabase
+    // Load pricing from site_config (CMS-driven)
+    const { data: configRows } = await supabase
+      .from('site_config')
+      .select('key, value')
+      .like('key', 'sub_%');
+
+    const configMap: Record<string, string> = {};
+    configRows?.forEach((row: { key: string; value: string }) => {
+      configMap[row.key] = row.value || '';
+    });
+
+    const priceKey = plan === 'monthly' ? 'sub_monthly_price' : 'sub_annual_price';
+    const priceStr = configMap[priceKey];
+    const amount = priceStr ? parseFloat(priceStr.replace(',', '.')) : NaN;
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return NextResponse.json(
+        { error: 'Plan not available' },
+        { status: 400 }
+      );
+    }
+
+    // Check existing active subscription (by user_id OR customer_email)
+    const { data: existingByUser } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
-    if (existingSubscription) {
+    if (existingByUser) {
       return NextResponse.json(
         { error: 'You already have an active subscription' },
         { status: 400 }
       );
     }
 
-    // Create subscription record
+    if (userEmail) {
+      const { data: existingByEmail } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('customer_email', userEmail)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (existingByEmail) {
+        return NextResponse.json(
+          { error: 'You already have an active subscription' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Create subscription record (linked to both user_id and email)
+    const periodDays = plan === 'annual' ? 365 : 30;
     const { data: subscription, error: subError } = await supabase
       .from('subscriptions')
       .insert({
         user_id: userId,
+        customer_email: userEmail,
         plan,
         status: 'trialing',
         amount,
         currency: 'EUR',
         current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        current_period_end: new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select()
       .single();
 
     if (subError || !subscription) {
+      console.error('Subscription insert error:', subError);
       return NextResponse.json(
         { error: 'Failed to create subscription' },
         { status: 500 }
@@ -89,7 +120,6 @@ export async function POST(request: Request) {
         cancel_url: `${siteUrl}/abonnement`,
       });
 
-      // Update subscription with FidePay data
       await supabase
         .from('subscriptions')
         .update({
@@ -105,7 +135,6 @@ export async function POST(request: Request) {
     } catch (fidepayError) {
       console.error('FidePay error:', fidepayError);
 
-      // Delete the subscription if payment creation failed
       await supabase
         .from('subscriptions')
         .delete()
