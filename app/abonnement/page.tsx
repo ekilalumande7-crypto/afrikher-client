@@ -139,10 +139,10 @@ export default function AbonnementsPage() {
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">Abonnements</h1>
             <p className="text-brand-gold italic text-xl font-display mb-12">
-              Les abonnements seront bient\u00f4t disponibles.
+              Les abonnements seront bientôt disponibles.
             </p>
             <p className="text-brand-gray text-lg">
-              Nous pr\u00e9parons quelque chose d\u2019exceptionnel pour vous. Restez connect\u00e9e.
+              Nous préparons quelque chose d'exceptionnel pour vous. Restez connectée.
             </p>
           </div>
         </section>
@@ -162,7 +162,7 @@ export default function AbonnementsPage() {
             {config.sub_hero_title || "Abonnements"}
           </h1>
           <p className="text-brand-gold italic text-xl font-display max-w-2xl mx-auto">
-            {config.sub_hero_subtitle || "Rejoignez une communaut\u00e9 de femmes visionnaires."}
+            {config.sub_hero_subtitle || "Rejoignez une communauté de femmes visionnaires."}
           </p>
         </div>
       </section>
@@ -245,10 +245,10 @@ export default function AbonnementsPage() {
               {config.sub_faq_title || "Une question ?"}
             </h2>
             <p className="text-brand-gray mb-12 font-light">
-              {config.sub_faq_text || "Notre \u00e9quipe est \u00e0 votre disposition."}
+              {config.sub_faq_text || "Notre équipe est à votre disposition."}
               {config.sub_faq_email && (
                 <>
-                  {" "}Contactez-nous \u00e0{" "}
+                  {" "}Contactez-nous à{" "}
                   <span className="text-brand-gold">{config.sub_faq_email}</span>
                 </>
               )}
