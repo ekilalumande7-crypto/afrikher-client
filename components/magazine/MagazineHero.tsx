@@ -30,7 +30,7 @@ export default function MagazineHero({
   heroSubtitle,
 }: MagazineHeroProps) {
   return (
-    <section className="relative min-h-[92vh] lg:min-h-screen overflow-hidden bg-[#0A0A0A]">
+    <section className="relative min-h-[78vh] lg:min-h-[88vh] overflow-hidden bg-[#0A0A0A]">
       {loading ? (
         <div className="absolute inset-0 animate-pulse bg-[#1A1A1A]" />
       ) : (
@@ -45,8 +45,8 @@ export default function MagazineHero({
         </>
       )}
 
-      <div className="relative z-10 h-full min-h-[85vh] lg:min-h-screen max-w-7xl mx-auto px-6 md:px-10 lg:px-12 flex items-center">
-        <div className="max-w-[44rem] pt-20 pb-16 text-[#F5F0E8]">
+      <div className="relative z-10 h-full min-h-[78vh] lg:min-h-[88vh] max-w-7xl mx-auto px-6 md:px-10 lg:px-12 flex items-center">
+        <div className="max-w-[44rem] pt-28 pb-14 md:pt-32 md:pb-16 text-[#F5F0E8]">
           <div className="fade-in-up">
             <span className="inline-flex items-center border border-[#C9A84C]/25 bg-black/10 px-3.5 py-1.5 font-body text-[0.58rem] font-medium uppercase tracking-[0.34em] text-[#C9A84C] backdrop-blur-sm">
               AFRIKHER MAGAZINE
@@ -80,7 +80,7 @@ export default function MagazineHero({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
+      <div className="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
         <div className="flex flex-col items-center gap-2">
           <span className="font-body text-[0.55rem] uppercase tracking-[0.35em] text-[#F5F0E8]/35">
             Découvrir

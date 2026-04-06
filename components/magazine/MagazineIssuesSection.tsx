@@ -22,9 +22,11 @@ export default function MagazineIssuesSection({
   magazines,
 }: MagazineIssuesSectionProps) {
   const hasMagazines = magazines.length > 0;
+  const filledMagazines = hasMagazines ? magazines.slice(0, 3) : [];
+  const placeholderCount = Math.max(0, 3 - filledMagazines.length);
 
   return (
-    <section className="bg-[#F5F0E8] py-20 md:py-24">
+    <section className="border-t border-black/[0.06] bg-[#F5F0E8] py-20 md:py-24">
       <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12 md:mb-16">
           <div>
@@ -34,6 +36,7 @@ export default function MagazineIssuesSection({
             <h2 className="mt-3 font-display text-[2.5rem] md:text-[3.4rem] leading-[0.96] tracking-[-0.02em] text-[#0A0A0A]">
               Nos numéros
             </h2>
+            <div className="mt-5 h-px w-16 bg-[#C9A84C]/45" />
           </div>
           <Link
             href="/boutique"
@@ -46,7 +49,7 @@ export default function MagazineIssuesSection({
 
         {hasMagazines ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 lg:gap-10">
-            {magazines.map((magazine, index) => (
+            {filledMagazines.map((magazine, index) => (
               <Link
                 key={magazine.id}
                 href={`/magazine/${magazine.slug}`}
@@ -66,10 +69,10 @@ export default function MagazineIssuesSection({
                   <p className="font-body text-[0.58rem] font-medium uppercase tracking-[0.3em] text-[#C9A84C]/80">
                     Magazine AFRIKHER
                   </p>
-                  <h3 className="mt-3 font-display text-[2rem] md:text-[2.15rem] leading-[1.04] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#8A6E2F]">
+                  <h3 className="mt-3 line-clamp-2 font-display text-[2rem] md:text-[2.15rem] leading-[1.04] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#8A6E2F]">
                     {magazine.title}
                   </h3>
-                  <p className="mt-4 line-clamp-2 font-body text-[0.92rem] leading-[1.8] text-[rgba(10,10,10,0.64)]">
+                  <p className="mt-4 line-clamp-3 font-body text-[0.92rem] leading-[1.8] text-[rgba(10,10,10,0.64)]">
                     {magazine.description}
                   </p>
                   <div className="mt-auto flex items-center justify-between pt-6">
@@ -83,6 +86,36 @@ export default function MagazineIssuesSection({
                   </div>
                 </div>
               </Link>
+            ))}
+            {Array.from({ length: placeholderCount }).map((_, index) => (
+              <div
+                key={`placeholder-${index}`}
+                className={`flex h-full flex-col ${filledMagazines.length === 1 && index === 0 ? "xl:translate-y-6" : ""}`}
+              >
+                <div className="relative overflow-hidden border border-black/8 bg-[#F1EBDD]">
+                  <div className="aspect-[4/5] bg-[linear-gradient(180deg,#E8DDC8_0%,#F6F0E5_100%)]" />
+                </div>
+                <div className="flex flex-1 flex-col border-x border-b border-black/8 bg-white/88 px-6 pt-5 pb-6">
+                  <p className="font-body text-[0.58rem] font-medium uppercase tracking-[0.3em] text-[#C9A84C]/80">
+                    Magazine AFRIKHER
+                  </p>
+                  <h3 className="mt-3 line-clamp-2 font-display text-[2rem] md:text-[2.15rem] leading-[1.04] tracking-[-0.015em] text-[#0A0A0A]">
+                    Nouveau numéro bientôt
+                  </h3>
+                  <p className="mt-4 line-clamp-3 font-body text-[0.92rem] leading-[1.8] text-[rgba(10,10,10,0.64)]">
+                    La prochaine édition AFRIKHER arrive bientôt avec une nouvelle couverture, des portraits et des analyses exclusives.
+                  </p>
+                  <div className="mt-auto flex items-center justify-between pt-6">
+                    <span className="font-body text-[0.62rem] uppercase tracking-[0.24em] text-[rgba(10,10,10,0.46)]">
+                      Bientôt
+                    </span>
+                    <span className="inline-flex items-center gap-2 font-body text-[0.66rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/55">
+                      Prochain numéro
+                      <BookOpen size={13} />
+                    </span>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : (

@@ -6,7 +6,6 @@ import MagazineBlogSection from "@/components/magazine/MagazineBlogSection";
 import MagazineHeader from "@/components/magazine/MagazineHeader";
 import MagazineHero from "@/components/magazine/MagazineHero";
 import MagazineIssuesSection from "@/components/magazine/MagazineIssuesSection";
-import MagazineMiniFooter from "@/components/magazine/MagazineMiniFooter";
 import MagazinePremiumCTA from "@/components/magazine/MagazinePremiumCTA";
 
 interface Magazine {
@@ -188,7 +187,6 @@ export default function MagazinePage() {
       <MagazineIssuesSection magazines={allMagazines} />
       <MagazineBlogSection blogPosts={blogPosts} />
       <MagazinePremiumCTA />
-      <MagazineMiniFooter />
       <Footer />
     </main>
   );

@@ -56,7 +56,7 @@ export default function MagazineHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-[100] h-20 border-b border-[#C9A84C]/10 bg-[#0A0A0A]/94 backdrop-blur-sm">
+      <header className="fixed inset-x-0 top-0 z-[100] h-20 border-b border-white/[0.06] bg-[#0A0A0A] shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12 h-full flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2">
             <span className="font-display text-[1.45rem] md:text-[1.6rem] font-light tracking-[0.18em] text-[#F5F0E8] uppercase transition-colors duration-300 group-hover:text-[#C9A84C]">

@@ -20,7 +20,7 @@ export default function MagazineBlogSection({
   const hasPosts = blogPosts.length > 0;
 
   return (
-    <section className="bg-[#F6F1E8] py-20 md:py-24">
+    <section className="border-t border-black/[0.06] bg-[#F6F1E8] py-20 md:py-24">
       <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
         <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-12 md:mb-16">
           <div>
@@ -30,6 +30,7 @@ export default function MagazineBlogSection({
             <h2 className="mt-3 font-display text-[2.35rem] md:text-[3rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A]">
               Regards AFRIKHER
             </h2>
+            <div className="mt-5 h-px w-16 bg-[#C9A84C]/45" />
           </div>
           <Link
             href="/blog"
@@ -71,7 +72,7 @@ export default function MagazineBlogSection({
                   <p className="mt-4 line-clamp-2 font-body text-[0.9rem] leading-[1.8] text-[rgba(10,10,10,0.66)]">
                     {post.excerpt}
                   </p>
-                  <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/72 transition-colors duration-300 group-hover:text-[#C9A84C]">
+                  <span className="mt-auto pt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/72 transition-colors duration-300 group-hover:text-[#C9A84C]">
                     Lire l&apos;article
                     <ArrowRight size={13} />
                   </span>
