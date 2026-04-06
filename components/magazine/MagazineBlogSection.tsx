@@ -46,7 +46,7 @@ export default function MagazineBlogSection({
             {blogPosts.map((post) => (
               <Link
                 key={post.id}
-                href={`/blog/${post.slug}`}
+                href={`/rubriques/${post.slug}`}
                 className="group flex h-full flex-col overflow-hidden border border-black/6 bg-white/80 transition-transform duration-500 hover:-translate-y-1"
               >
                 <div className="aspect-[4/2.6] overflow-hidden">

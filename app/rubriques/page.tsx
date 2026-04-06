@@ -271,8 +271,7 @@ export default function RubriquesPage() {
           ? filteredPhotos.length
           : filteredVideos.length;
 
-  const getItemHref = (item: ContentItem) =>
-    item.source === "blog" ? `/blog/${item.slug}` : `/rubriques/${item.slug}`;
+  const getItemHref = (item: ContentItem) => `/rubriques/${item.slug}`;
 
   const formatDate = (d: string | null) => {
     if (!d) return "";
