@@ -1,36 +1,27 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle2 } from "lucide-react";
 
-function LoginForm() {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const redirectTo = useMemo(
-    () => searchParams.get("redirect") || "/dashboard",
-    [searchParams]
-  );
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
+    const redirectTo = `${window.location.origin}/auth/reset-password`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo,
     });
 
     if (error) {
@@ -39,7 +30,11 @@ function LoginForm() {
       return;
     }
 
-    router.push(redirectTo);
+    setSuccess(
+      "Un lien de reinitialisation a ete envoye a votre adresse email."
+    );
+    setLoading(false);
+    setEmail("");
   };
 
   return (
@@ -61,18 +56,19 @@ function LoginForm() {
             </p>
 
             <h1 className="mt-3 font-display text-[2.6rem] leading-[0.98] tracking-[-0.03em] text-[#F5F0E8] md:text-[3.4rem]">
-              Connexion
+              Mot de passe oublie
             </h1>
 
             <p className="mx-auto mt-4 max-w-md font-display text-[1rem] italic leading-[1.55] text-[#F5F0E8]/62 md:text-[1.08rem]">
-              Accedez a votre espace AFRIKHER en toute simplicite.
+              Recevez un lien securise pour retrouver l&apos;acces a votre espace
+              AFRIKHER.
             </p>
 
             <div className="mx-auto mt-6 h-px w-20 bg-[#C9A84C]/70" />
           </div>
 
           <div className="border border-[#C9A84C]/18 bg-[#111111]/88 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.35)] backdrop-blur-sm md:p-8">
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="mb-2.5 block font-body text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-[#C9A84C]/88">
                   Adresse email
@@ -94,56 +90,25 @@ function LoginForm() {
                 </div>
               </div>
 
-              <div>
-                <div className="mb-2.5 flex items-center justify-between gap-4">
-                  <label className="font-body text-[0.66rem] font-semibold uppercase tracking-[0.24em] text-[#C9A84C]/88">
-                    Mot de passe
-                  </label>
-
-                  <Link
-                    href="/auth/forgot-password"
-                    className="font-body text-[0.64rem] uppercase tracking-[0.2em] text-[#C9A84C] transition-opacity hover:opacity-75"
-                  >
-                    Mot de passe oublie ?
-                  </Link>
-                </div>
-
-                <div className="relative">
-                  <Lock
-                    size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8D877C]"
-                  />
-
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="h-13 w-full border border-[#C9A84C]/14 bg-[#080808] py-3 pl-12 pr-12 font-body text-sm text-[#F5F0E8] outline-none transition-colors placeholder:text-[#8D877C] focus:border-[#C9A84C]"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={
-                      showPassword
-                        ? "Masquer le mot de passe"
-                        : "Afficher le mot de passe"
-                    }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8D877C] transition-colors hover:text-[#C9A84C]"
-                  >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </div>
-              </div>
-
               {error && (
                 <div className="border border-red-400/20 bg-red-500/10 px-4 py-3">
                   <p className="font-body text-sm leading-[1.6] text-red-300">
                     {error}
                   </p>
+                </div>
+              )}
+
+              {success && (
+                <div className="border border-emerald-400/20 bg-emerald-500/10 px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2
+                      size={18}
+                      className="mt-0.5 shrink-0 text-emerald-300"
+                    />
+                    <p className="font-body text-sm leading-[1.6] text-emerald-200">
+                      {success}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -156,7 +121,7 @@ function LoginForm() {
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#0A0A0A] border-t-transparent" />
                 ) : (
                   <>
-                    <span>Se connecter</span>
+                    <span>Envoyer le lien</span>
                     <ArrowRight size={15} />
                   </>
                 )}
@@ -165,20 +130,20 @@ function LoginForm() {
 
             <div className="mt-6 border-t border-white/8 pt-5">
               <p className="text-center font-body text-[0.84rem] leading-[1.7] text-[#F5F0E8]/48">
-                Votre acces personnel vous permet de retrouver votre espace
-                membre, vos contenus et vos avantages AFRIKHER.
+                Si votre adresse est reconnue, vous recevrez un lien de
+                reinitialisation en quelques instants.
               </p>
             </div>
           </div>
 
           <div className="mt-8 space-y-3 text-center">
             <p className="font-body text-sm text-[#F5F0E8]/56">
-              Pas encore de compte ?{" "}
+              Vous vous souvenez de votre mot de passe ?{" "}
               <Link
-                href="/auth/register"
+                href="/auth/login"
                 className="text-[#C9A84C] transition-opacity hover:opacity-75"
               >
-                Creer un compte
+                Se connecter
               </Link>
             </p>
 
@@ -192,19 +157,5 @@ function LoginForm() {
         </div>
       </div>
     </main>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-[#050505]">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" />
-        </main>
-      }
-    >
-      <LoginForm />
-    </Suspense>
   );
 }
