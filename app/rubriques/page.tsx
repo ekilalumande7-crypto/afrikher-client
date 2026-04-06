@@ -25,6 +25,7 @@ interface PhotoItem {
   image_url: string;
   category: string | null;
   featured: boolean;
+  sort_order: number;
 }
 
 interface VideoItem {
@@ -61,6 +62,14 @@ function getVideoThumbnail(url: string, fallback = "") {
     return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
   }
   return fallback;
+}
+
+function chunkItems<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 export default function RubriquesPage() {
@@ -137,16 +146,61 @@ export default function RubriquesPage() {
         );
         setAllContent(combined);
 
-        const parsedPhotos: PhotoItem[] = (galleryRes.data || [])
-          .filter((item: any) => Boolean(item.image_url))
-          .map((item: any) => ({
-            id: item.id,
-            title: item.title || "",
-            description: item.description || "",
-            image_url: item.image_url,
-            category: item.category || "",
-            featured: Boolean(item.featured),
-          }));
+        let parsedPhotos: PhotoItem[] = [];
+        try {
+          const rawPhotos = config.rubriques_galerie ? JSON.parse(config.rubriques_galerie) : [];
+          if (Array.isArray(rawPhotos) && rawPhotos.length > 0) {
+            parsedPhotos = rawPhotos
+              .filter(
+                (item) =>
+                  item &&
+                  typeof item === "object" &&
+                  (item.url || item.image_url)
+              )
+              .map((item: any, index: number) => ({
+                id: String(item.id || `photo-${index}`),
+                title:
+                  item.title || item.titre || item.legende || item.caption || "",
+                description:
+                  item.description || item.legende || item.caption || "",
+                image_url: item.url || item.image_url,
+                category: item.category || "",
+                featured: Boolean(item.featured),
+                sort_order: Number.isFinite(item.ordre)
+                  ? item.ordre
+                  : Number.isFinite(item.sort_order)
+                    ? item.sort_order
+                    : index,
+              }))
+              .sort((a, b) => a.sort_order - b.sort_order);
+          } else {
+            parsedPhotos = (galleryRes.data || [])
+              .filter((item: any) => Boolean(item.image_url))
+              .map((item: any, index: number) => ({
+                id: item.id,
+                title: item.title || "",
+                description: item.description || "",
+                image_url: item.image_url,
+                category: item.category || "",
+                featured: Boolean(item.featured),
+                sort_order: Number.isFinite(item.sort_order) ? item.sort_order : index,
+              }))
+              .sort((a, b) => a.sort_order - b.sort_order);
+          }
+        } catch {
+          parsedPhotos = (galleryRes.data || [])
+            .filter((item: any) => Boolean(item.image_url))
+            .map((item: any, index: number) => ({
+              id: item.id,
+              title: item.title || "",
+              description: item.description || "",
+              image_url: item.image_url,
+              category: item.category || "",
+              featured: Boolean(item.featured),
+              sort_order: Number.isFinite(item.sort_order) ? item.sort_order : index,
+            }))
+            .sort((a, b) => a.sort_order - b.sort_order);
+        }
         setPhotos(parsedPhotos);
 
         let parsedVideos: VideoItem[] = [];
@@ -209,6 +263,23 @@ export default function RubriquesPage() {
     ...filteredVideos.map((item) => ({ ...item, mediaType: "video" as const })),
   ];
 
+  const topUpSuggestions =
+    activeTab === "articles" && normalizedSearch && filteredArticles.length < 3
+      ? allContent
+          .filter((item) => !filteredArticles.some((filteredItem) => filteredItem.id === item.id))
+          .slice(0, 3 - filteredArticles.length)
+      : [];
+
+  const articleDisplayItems =
+    activeTab === "articles" && normalizedSearch && filteredArticles.length < 3
+      ? [...filteredArticles, ...topUpSuggestions]
+      : filteredArticles;
+
+  const articlePages = chunkItems(articleDisplayItems, 3);
+  const galleryPages = chunkItems(galleryItems, 3);
+  const photoPages = chunkItems(filteredPhotos, 3);
+  const videoPages = chunkItems(filteredVideos, 3);
+
   const activeCount =
     activeTab === "articles"
       ? filteredArticles.length
@@ -217,13 +288,6 @@ export default function RubriquesPage() {
         : activeTab === "photos"
           ? filteredPhotos.length
           : filteredVideos.length;
-
-  const articleSuggestions =
-    activeTab === "articles" && normalizedSearch
-      ? allContent
-          .filter((item) => !filteredArticles.some((filteredItem) => filteredItem.id === item.id))
-          .slice(0, Math.max(0, 3 - filteredArticles.length))
-      : [];
 
   const getItemHref = (item: ContentItem) =>
     item.source === "blog" ? `/blog/${item.slug}` : `/rubriques/${item.slug}`;
@@ -244,6 +308,9 @@ export default function RubriquesPage() {
 
   const editorialImage = siteConfig.rubriques_editorial_image || "";
   const editorialCitation = siteConfig.rubriques_editorial_citation || "";
+  const editorialTexte =
+    siteConfig.rubriques_editorial_texte ||
+    "Une sélection pensée comme une traversée éditoriale : articles, images et vidéos qui donnent du relief à l’univers AFRIKHER.";
 
   const renderArticleCard = (item: ContentItem, compact = false) => (
     <Link
@@ -275,37 +342,43 @@ export default function RubriquesPage() {
             )}
           </div>
 
-          <h3
-            className={`line-clamp-3 font-display tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C] ${
-              compact
-                ? "text-[1.55rem] leading-[1.14]"
-                : "text-[1.9rem] leading-[1.08]"
-            }`}
-          >
-            {item.title}
-          </h3>
+          <div className={compact ? "min-h-[5.4rem]" : "min-h-[6.5rem]"}>
+            <h3
+              className={`line-clamp-3 font-display tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C] ${
+                compact
+                  ? "text-[1.55rem] leading-[1.14]"
+                  : "text-[1.9rem] leading-[1.08]"
+              }`}
+            >
+              {item.title}
+            </h3>
+          </div>
 
-          <p
-            className={`mt-3 font-body text-[#0A0A0A]/56 ${
-              compact
-                ? "line-clamp-2 text-[0.9rem] leading-[1.7]"
-                : "line-clamp-3 text-[0.94rem] leading-[1.8]"
-            }`}
-          >
-            {item.excerpt}
-          </p>
+          <div className={compact ? "min-h-[4.2rem]" : "min-h-[5.75rem]"}>
+            <p
+              className={`mt-3 font-body text-[#0A0A0A]/56 ${
+                compact
+                  ? "line-clamp-2 text-[0.9rem] leading-[1.7]"
+                  : "line-clamp-3 text-[0.94rem] leading-[1.8]"
+              }`}
+            >
+              {item.excerpt}
+            </p>
+          </div>
 
-          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-            Lire l&apos;article
-            <ArrowRight size={13} />
-          </span>
-
-          <div className="mt-auto flex items-center gap-3 pt-4 font-body text-[0.74rem] text-[#8D877C]">
-            {item.published_at && <span>{formatDate(item.published_at)}</span>}
-            <span className="flex items-center gap-1">
-              <Clock size={11} />
-              {readTime(item.excerpt)} de lecture
+          <div className="mt-auto pt-5">
+            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+              Lire l&apos;article
+              <ArrowRight size={13} />
             </span>
+
+            <div className="flex items-center gap-3 pt-4 font-body text-[0.74rem] text-[#8D877C]">
+              {item.published_at && <span>{formatDate(item.published_at)}</span>}
+              <span className="flex items-center gap-1">
+                <Clock size={11} />
+                {readTime(item.excerpt)} de lecture
+              </span>
+            </div>
           </div>
         </div>
       </article>
@@ -341,18 +414,24 @@ export default function RubriquesPage() {
             )}
           </div>
 
-          <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-            {item.title || "Instant AFRIKHER"}
-          </h3>
+          <div className="min-h-[4.3rem]">
+            <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+              {item.title || "Instant AFRIKHER"}
+            </h3>
+          </div>
 
-          <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
-            {item.description || "Une image issue de l’univers éditorial AFRIKHER."}
-          </p>
+          <div className="min-h-[5.75rem]">
+            <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
+              {item.description || "Une image issue de l’univers éditorial AFRIKHER."}
+            </p>
+          </div>
 
-          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-            Voir la photo
-            <ArrowRight size={13} />
-          </span>
+          <div className="mt-auto pt-5">
+            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+              Voir la photo
+              <ArrowRight size={13} />
+            </span>
+          </div>
         </div>
       </article>
     </Link>
@@ -394,18 +473,24 @@ export default function RubriquesPage() {
             </span>
           </div>
 
-          <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-            {item.title}
-          </h3>
+          <div className="min-h-[4.3rem]">
+            <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+              {item.title}
+            </h3>
+          </div>
 
-          <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
-            {item.description || "Une vidéo issue de l’univers éditorial AFRIKHER."}
-          </p>
+          <div className="min-h-[5.75rem]">
+            <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
+              {item.description || "Une vidéo issue de l’univers éditorial AFRIKHER."}
+            </p>
+          </div>
 
-          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-            Regarder
-            <ArrowRight size={13} />
-          </span>
+          <div className="mt-auto pt-5">
+            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+              Regarder
+              <ArrowRight size={13} />
+            </span>
+          </div>
         </div>
       </article>
     </Link>
@@ -449,13 +534,13 @@ export default function RubriquesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
+    <main className="h-screen snap-y snap-mandatory overflow-y-auto scroll-smooth bg-[#F5F0E8] text-[#0A0A0A]">
       <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      <section className="bg-[#F5F0E8] pb-10 pt-28">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+      <section className="min-h-screen snap-start bg-[#F5F0E8] pb-8 pt-24">
+        <div className="flex min-h-[calc(100vh-6.5rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
             <div>
               <p className="mb-3 font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
                 {siteConfig.rubriques_editorial_titre || "Editorial"}
@@ -466,6 +551,9 @@ export default function RubriquesPage() {
               <p className="mt-3 max-w-[34rem] font-body text-[0.98rem] leading-[1.75] text-[#0A0A0A]/58">
                 {siteConfig.rubriques_editorial_sous_titre ||
                   "Un sommaire éditorial pensé comme une sélection AFRIKHER : articles, galerie, photos et vidéos à parcourir avec clarté."}
+              </p>
+              <p className="mt-4 max-w-[38rem] font-body text-[0.95rem] leading-[1.75] text-[#0A0A0A]/66">
+                {editorialTexte}
               </p>
             </div>
 
@@ -495,7 +583,7 @@ export default function RubriquesPage() {
           </div>
 
           {(editorialImage || editorialCitation) && (
-            <div className="mt-8 rounded-[1.75rem] border border-[#EAE2D4] bg-white/58 px-6 py-6 md:px-8">
+            <div className="mt-6 rounded-[1.75rem] border border-[#EAE2D4] bg-white/56 px-6 py-5 md:px-8">
               <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
                 {editorialImage && (
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-[#C9A84C]/30">
@@ -514,12 +602,8 @@ export default function RubriquesPage() {
               </div>
             </div>
           )}
-        </div>
-      </section>
 
-      <section className="bg-[#F5F0E8] pb-8">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
-          <div className="border-t border-black/[0.06] pt-8">
+          <div className="mt-8 border-t border-black/[0.06] pt-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-4">
                 {CONTENT_TABS.map((tab) => (
@@ -544,12 +628,11 @@ export default function RubriquesPage() {
           </div>
         </div>
       </section>
-
-      <section className="bg-[#F5F0E8] pb-20">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
-          {loading ? (
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
+      {loading ? (
+        <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
+          <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+            <div className="grid w-full grid-cols-1 items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
                 <div key={i} className="animate-pulse">
                   <div className="mb-4 aspect-[4/3] rounded-[1.25rem] bg-[#E8E5DE]" />
                   <div className="mb-3 h-3 w-1/4 rounded bg-[#E8E5DE]" />
@@ -558,66 +641,161 @@ export default function RubriquesPage() {
                 </div>
               ))}
             </div>
-          ) : activeTab === "articles" ? (
-            filteredArticles.length === 0 ? (
-              renderEmptyState("articles")
-            ) : (
-              <div className="space-y-10">
-                <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredArticles.map((item) => renderArticleCard(item))}
-                </div>
-
-                {searchQuery.trim() !== "" &&
-                  filteredArticles.length < 3 &&
-                  articleSuggestions.length > 0 && (
-                    <div className="border-t border-black/[0.06] pt-8">
-                      <div className="mb-6">
-                        <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                          À découvrir aussi
-                        </p>
-                        <p className="mt-2 font-body text-sm text-[#8D877C]">
-                          Une sélection complémentaire pour garder une page vivante même avec peu de résultats.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                        {articleSuggestions.map((item) => renderArticleCard(item, true))}
-                      </div>
-                    </div>
+          </div>
+        </section>
+      ) : activeTab === "articles" ? (
+        articlePages.length === 0 ? (
+          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
+            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+              {renderEmptyState("articles")}
+            </div>
+          </section>
+        ) : (
+          articlePages.map((pageItems, pageIndex) => (
+            <section
+              key={`articles-page-${pageIndex}`}
+              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
+            >
+              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+                <div className="mb-10 flex items-end justify-between gap-6">
+                  <div>
+                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                      Sélection éditoriale
+                    </p>
+                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                      Articles AFRIKHER
+                    </h2>
+                  </div>
+                  {articlePages.length > 1 && (
+                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
+                      Écran {pageIndex + 1}/{articlePages.length}
+                    </p>
                   )}
+                </div>
+                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {pageItems.map((item) => renderArticleCard(item, normalizedSearch !== ""))}
+                </div>
               </div>
-            )
-          ) : activeTab === "gallery" ? (
-            galleryItems.length === 0 ? (
-              renderEmptyState("gallery")
-            ) : (
-              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                {galleryItems.map((item) =>
-                  item.mediaType === "photo"
-                    ? renderPhotoCard(item)
-                    : renderVideoCard(item)
+            </section>
+          ))
+        )
+      ) : activeTab === "gallery" ? (
+        galleryPages.length === 0 ? (
+          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
+            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+              {renderEmptyState("gallery")}
+            </div>
+          </section>
+        ) : (
+          galleryPages.map((pageItems, pageIndex) => (
+            <section
+              key={`gallery-page-${pageIndex}`}
+              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
+            >
+              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+                <div className="mb-10 flex items-end justify-between gap-6">
+                  <div>
+                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                      Galerie éditoriale
+                    </p>
+                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                      Photos &amp; vidéos
+                    </h2>
+                  </div>
+                  {galleryPages.length > 1 && (
+                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
+                      Écran {pageIndex + 1}/{galleryPages.length}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {pageItems.map((item) =>
+                    item.mediaType === "photo"
+                      ? renderPhotoCard(item)
+                      : renderVideoCard(item)
+                  )}
+                </div>
+              </div>
+            </section>
+          ))
+        )
+      ) : activeTab === "photos" ? (
+        photoPages.length === 0 ? (
+          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
+            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+              {renderEmptyState("photos")}
+            </div>
+          </section>
+        ) : (
+          photoPages.map((pageItems, pageIndex) => (
+            <section
+              key={`photos-page-${pageIndex}`}
+              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
+            >
+              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+                <div className="mb-10 flex items-end justify-between gap-6">
+                  <div>
+                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                      Galerie photos
+                    </p>
+                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                      Photos AFRIKHER
+                    </h2>
+                  </div>
+                  {photoPages.length > 1 && (
+                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
+                      Écran {pageIndex + 1}/{photoPages.length}
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {pageItems.map((item) => renderPhotoCard(item))}
+                </div>
+              </div>
+            </section>
+          ))
+        )
+      ) : videoPages.length === 0 ? (
+        <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
+          <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+            {renderEmptyState("videos")}
+          </div>
+        </section>
+      ) : (
+        videoPages.map((pageItems, pageIndex) => (
+          <section
+            key={`videos-page-${pageIndex}`}
+            className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
+          >
+            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+              <div className="mb-10 flex items-end justify-between gap-6">
+                <div>
+                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Sélection vidéo
+                  </p>
+                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                    Vidéos AFRIKHER
+                  </h2>
+                </div>
+                {videoPages.length > 1 && (
+                  <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
+                    Écran {pageIndex + 1}/{videoPages.length}
+                  </p>
                 )}
               </div>
-            )
-          ) : activeTab === "photos" ? (
-            filteredPhotos.length === 0 ? (
-              renderEmptyState("photos")
-            ) : (
-              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                {filteredPhotos.map((item) => renderPhotoCard(item))}
+              <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                {pageItems.map((item) => renderVideoCard(item))}
               </div>
-            )
-          ) : filteredVideos.length === 0 ? (
-            renderEmptyState("videos")
-          ) : (
-            <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-              {filteredVideos.map((item) => renderVideoCard(item))}
             </div>
-          )}
+          </section>
+        ))
+      )}
+
+      <section className="min-h-screen snap-start bg-[#0A0A0A] pt-28">
+        <div className="flex min-h-[calc(100vh-7rem)] flex-col justify-end">
+          <Footer />
         </div>
       </section>
-
-      <Footer />
     </main>
   );
 }
