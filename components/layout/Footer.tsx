@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Facebook, Instagram, Linkedin } from "lucide-react";
+import { Instagram, Linkedin } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Footer() {
@@ -28,83 +28,70 @@ export default function Footer() {
   }, []);
 
   const email = config.contact_email || "contact@afrikher.com";
-  const addresses = [
-    config.contact_address_1,
-    config.contact_address_2,
-    config.contact_address_3,
-  ].filter(Boolean);
+  const address = config.contact_address_1 || "Waterloo, Belgique";
   const socialInstagram = config.social_instagram || "#";
-  const socialFacebook = config.social_facebook || "#";
   const socialLinkedin = config.social_linkedin || "#";
 
   return (
-    <footer className="bg-[#0A0A0A] text-[#F5F0E8] pt-24 pb-12 px-6 md:px-12 border-t border-[#C9A84C]/10">
+    <footer className="bg-[#0A0A0A] text-[#F5F0E8] pt-32 pb-12 px-6 md:px-[10%] border-t border-[#C9A84C]/8">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-          {/* Brand */}
-          <div className="space-y-6">
-            <Link href="/" className="text-2xl font-display font-light tracking-[0.3em] text-[#F5F0E8] uppercase">
+        {/* Top: Brand identity — prominent */}
+        <div className="mb-20 md:mb-28">
+          <Link href="/" className="block mb-6">
+            <span className="text-[2rem] md:text-[2.8rem] font-display font-light tracking-[0.25em] text-[#F5F0E8] uppercase leading-none">
               AFRIKHER
-            </Link>
-            <p className="text-[#F5F0E8]/30 text-[0.8rem] leading-[1.8] font-body font-light max-w-xs">
-              L&apos;élégance hors du commun. Le Business au féminin.
-            </p>
+            </span>
+          </Link>
+          <p className="text-[#F5F0E8]/20 text-[0.75rem] leading-[1.8] font-body font-light tracking-wide max-w-xs">
+            L&apos;élégance au féminin.
+          </p>
+        </div>
+
+        {/* Middle: Minimal links + contact — 3 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 mb-20">
+          {/* Navigation — reduced */}
+          <div>
+            <h4 className="font-body text-[0.5rem] font-medium text-[#C9A84C]/40 uppercase tracking-[0.3em] mb-6">Navigation</h4>
+            <ul className="space-y-3 text-[0.7rem] text-[#F5F0E8]/30 font-body tracking-wide">
+              <li><Link href="/magazine" className="hover:text-[#C9A84C] transition-colors duration-300">Magazine</Link></li>
+              <li><Link href="/rubriques" className="hover:text-[#C9A84C] transition-colors duration-300">Rubriques</Link></li>
+              <li><Link href="/boutique" className="hover:text-[#C9A84C] transition-colors duration-300">Boutique</Link></li>
+            </ul>
+          </div>
+
+          {/* Contact — clean */}
+          <div>
+            <h4 className="font-body text-[0.5rem] font-medium text-[#C9A84C]/40 uppercase tracking-[0.3em] mb-6">Contact</h4>
+            <ul className="space-y-3 text-[0.7rem] text-[#F5F0E8]/30 font-body tracking-wide">
+              <li>{email}</li>
+              <li>{address}</li>
+            </ul>
+          </div>
+
+          {/* Social — minimal icons */}
+          <div>
+            <h4 className="font-body text-[0.5rem] font-medium text-[#C9A84C]/40 uppercase tracking-[0.3em] mb-6">Social</h4>
             <div className="flex space-x-5">
-              <Link href={socialFacebook} className="text-[#F5F0E8]/20 hover:text-[#C9A84C] transition-colors duration-300">
-                <Facebook size={16} strokeWidth={1.5} />
-              </Link>
               <Link href={socialInstagram} className="text-[#F5F0E8]/20 hover:text-[#C9A84C] transition-colors duration-300">
-                <Instagram size={16} strokeWidth={1.5} />
+                <Instagram size={15} strokeWidth={1.5} />
               </Link>
               <Link href={socialLinkedin} className="text-[#F5F0E8]/20 hover:text-[#C9A84C] transition-colors duration-300">
-                <Linkedin size={16} strokeWidth={1.5} />
+                <Linkedin size={15} strokeWidth={1.5} />
               </Link>
             </div>
           </div>
-
-          {/* Navigation */}
-          <div>
-            <h4 className="font-body text-[0.6rem] font-medium text-[#C9A84C]/50 uppercase tracking-[0.3em] mb-8">Navigation</h4>
-            <ul className="space-y-4 text-[0.75rem] text-[#F5F0E8]/40 font-body tracking-wide">
-              <li><Link href="/magazine" className="hover:text-[#C9A84C] transition-colors duration-300">Magazine</Link></li>
-              <li><Link href="/rubriques" className="hover:text-[#C9A84C] transition-colors duration-300">Les Rubriques</Link></li>
-              <li><Link href="/boutique" className="hover:text-[#C9A84C] transition-colors duration-300">Boutique</Link></li>
-              <li><Link href="/abonnement" className="hover:text-[#C9A84C] transition-colors duration-300">Abonnement</Link></li>
-            </ul>
-          </div>
-
-          {/* Légal */}
-          <div>
-            <h4 className="font-body text-[0.6rem] font-medium text-[#C9A84C]/50 uppercase tracking-[0.3em] mb-8">Légal</h4>
-            <ul className="space-y-4 text-[0.75rem] text-[#F5F0E8]/40 font-body tracking-wide">
-              <li><Link href="#" className="hover:text-[#C9A84C] transition-colors duration-300">Mentions Légales</Link></li>
-              <li><Link href="#" className="hover:text-[#C9A84C] transition-colors duration-300">Confidentialité</Link></li>
-              <li><Link href="#" className="hover:text-[#C9A84C] transition-colors duration-300">CGV</Link></li>
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="font-body text-[0.6rem] font-medium text-[#C9A84C]/50 uppercase tracking-[0.3em] mb-8">Contact</h4>
-            <ul className="space-y-4 text-[0.75rem] text-[#F5F0E8]/40 font-body tracking-wide">
-              <li>{email}</li>
-              {addresses.length > 0 ? (
-                addresses.map((addr, i) => <li key={i}>{addr}</li>)
-              ) : (
-                <li>Waterloo, Belgique</li>
-              )}
-            </ul>
-          </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="pt-8 border-t border-white/[0.04] flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-[0.55rem] text-[#F5F0E8]/20 font-body tracking-[0.2em] uppercase">
-            © {new Date().getFullYear()} AFRIKHER — Tous droits réservés
-          </span>
-          <span className="text-[0.55rem] text-[#F5F0E8]/15 font-body tracking-[0.15em] uppercase">
-            Designed by TECHNOVOLUT
-          </span>
+        {/* Bottom bar — signature éditoriale */}
+        <div className="pt-8 border-t border-white/[0.04]">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <span className="text-[0.5rem] text-[#F5F0E8]/15 font-body tracking-[0.2em] uppercase">
+              © {new Date().getFullYear()} AFRIKHER — Tous droits réservés
+            </span>
+            <span className="text-[0.5rem] text-[#F5F0E8]/10 font-display italic tracking-wide">
+              AFRIKHER — L&apos;élégance hors du commun
+            </span>
+          </div>
         </div>
       </div>
     </footer>

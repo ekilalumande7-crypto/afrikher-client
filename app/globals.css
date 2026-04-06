@@ -47,8 +47,44 @@ body {
 .hero-title {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 300;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   line-height: 0.95;
+  text-shadow: 0 2px 40px rgba(0,0,0,0.5);
+}
+
+/* Section reveal animation */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fadeInUp 0.7s ease-out forwards;
+  opacity: 0;
+}
+
+/* Premium image hover zoom */
+.img-zoom {
+  transition: transform 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.group:hover .img-zoom {
+  transform: scale(1.06);
+}
+
+/* Gold focus ring for inputs */
+.input-gold {
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.input-gold:focus {
+  border-color: rgba(201, 168, 76, 0.5) !important;
+  box-shadow: 0 0 0 1px rgba(201, 168, 76, 0.12), 0 4px 20px rgba(201, 168, 76, 0.06);
+}
+
+/* Premium button hover glow */
+.btn-gold-glow {
+  transition: all 0.5s ease;
+}
+.btn-gold-glow:hover {
+  box-shadow: 0 0 30px rgba(201, 168, 76, 0.2), 0 0 60px rgba(201, 168, 76, 0.06);
 }
 
 /* Section headings */

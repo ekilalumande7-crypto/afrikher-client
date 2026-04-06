@@ -47,29 +47,28 @@ export default function HeroSection() {
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-[#0A0A0A]">
-      {/* Layer 1: Background Image — z-0 */}
+      {/* Layer 1: Background Image — z-0, slow zoom on load */}
       <div
-        className="absolute inset-0 z-0 w-full h-full bg-cover bg-center grayscale contrast-[1.1] scale-105"
+        className="absolute inset-0 z-0 w-full h-full bg-cover bg-center grayscale contrast-[1.1]"
         style={{
           backgroundImage: `url(${heroImage})`,
-          transition: "transform 8s ease-out",
-          ...(loaded ? { transform: "scale(1)" } : {}),
+          transition: "transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          transform: loaded ? "scale(1)" : "scale(1.08)",
         }}
       />
 
-      {/* Layer 2: Dark overlay — z-[1], stronger left/center-left */}
+      {/* Layer 2: Dark overlay — z-[1], stronger left with local text shadow zone */}
       <div
         className="absolute inset-0 z-[1]"
         style={{
-          background: "linear-gradient(100deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.82) 30%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.30) 75%, rgba(0,0,0,0.15) 100%)"
+          background: "linear-gradient(100deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.85) 30%, rgba(0,0,0,0.58) 55%, rgba(0,0,0,0.30) 75%, rgba(0,0,0,0.12) 100%)"
         }}
       />
 
       {/* Subtle gold accent line — left edge, z-[2] */}
       <div className="absolute top-0 left-0 w-[1px] h-full z-[2] bg-gradient-to-b from-transparent via-[#C9A84C]/20 to-transparent" />
 
-      {/* Layer 3: Content — z-[10], ABOVE image and overlay
-          Single column container with consistent left alignment */}
+      {/* Layer 3: Content — z-[10], ABOVE image and overlay */}
       <div
         className="absolute inset-0 z-[10] flex items-end"
         style={{ pointerEvents: "none" }}
@@ -78,23 +77,23 @@ export default function HeroSection() {
           className="w-full px-6 md:px-[10%] pb-[10vh] md:pb-[12vh]"
           style={{ pointerEvents: "auto" }}
         >
-          {/* All elements share the same left edge — single column axis */}
-          <div className="max-w-[480px]">
+          {/* All elements share the same left edge — max-w-[460px] for tighter containment */}
+          <div className="max-w-[460px]">
             {/* Overline */}
             <div
-              className={`mb-4 transition-all duration-1000 ease-out ${
+              className={`mb-3 transition-all duration-1000 ease-out ${
                 loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
               }`}
               style={{ transitionDelay: "0.3s" }}
             >
-              <span className="text-[0.55rem] text-[#C9A84C]/60 tracking-[0.35em] uppercase font-body font-medium">
+              <span className="text-[0.5rem] text-[#C9A84C]/50 tracking-[0.35em] uppercase font-body font-medium">
                 Magazine éditorial premium
               </span>
             </div>
 
-            {/* Brand Name — contained, net, above everything */}
+            {/* Brand Name — 5-10% smaller than 5rem = ~4.5rem */}
             <h1
-              className={`hero-title text-[8.5vw] md:text-[5rem] uppercase leading-[0.95] mb-4 gold-shimmer transition-all duration-1000 ease-out ${
+              className={`hero-title text-[7.5vw] md:text-[4.5rem] uppercase leading-[0.95] mb-3 gold-shimmer transition-all duration-1000 ease-out ${
                 loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
               style={{ transitionDelay: "0.5s" }}
@@ -102,9 +101,9 @@ export default function HeroSection() {
               {siteName}
             </h1>
 
-            {/* Tagline */}
+            {/* Tagline — slightly smaller */}
             <h2
-              className={`font-display font-light text-[1.2rem] md:text-[1.8rem] text-[#F5F0E8] leading-[1.2] mb-4 transition-all duration-1000 ease-out ${
+              className={`font-display font-light text-[1.1rem] md:text-[1.6rem] text-[#F5F0E8] leading-[1.2] mb-3 transition-all duration-1000 ease-out ${
                 loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
               style={{ transitionDelay: "0.7s" }}
@@ -112,9 +111,9 @@ export default function HeroSection() {
               {heroTitle}
             </h2>
 
-            {/* Description */}
+            {/* Description — 2 lines max */}
             <p
-              className={`font-body text-[0.82rem] font-light text-[#F5F0E8]/50 max-w-[400px] leading-[1.8] tracking-wide mb-8 transition-all duration-1000 ease-out ${
+              className={`font-body text-[0.78rem] font-light text-[#F5F0E8]/45 max-w-[380px] leading-[1.8] tracking-wide mb-7 transition-all duration-1000 ease-out ${
                 loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
               style={{ transitionDelay: "0.9s" }}
@@ -122,7 +121,7 @@ export default function HeroSection() {
               {siteDescription}
             </p>
 
-            {/* CTAs */}
+            {/* CTAs — with glow effect */}
             <div
               className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-4 transition-all duration-1000 ease-out ${
                 loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
@@ -131,13 +130,13 @@ export default function HeroSection() {
             >
               <Link
                 href={heroCta1Link}
-                className="bg-[#C9A84C] text-[#0A0A0A] px-9 py-[16px] font-body font-semibold text-[0.65rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] hover:shadow-[0_0_30px_rgba(201,168,76,0.25)] transition-all duration-500 ease-out text-center"
+                className="btn-gold-glow bg-[#C9A84C] text-[#0A0A0A] px-8 py-[15px] font-body font-semibold text-[0.6rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] transition-all duration-500 ease-out text-center"
               >
                 {heroCta1Text}
               </Link>
               <Link
                 href={heroCta2Link}
-                className="border border-[#C9A84C]/40 text-[#C9A84C] px-9 py-[16px] font-body font-semibold text-[0.65rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C] transition-all duration-500 ease-out text-center"
+                className="border border-[#C9A84C]/30 text-[#C9A84C] px-8 py-[15px] font-body font-semibold text-[0.6rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/60 transition-all duration-500 ease-out text-center"
               >
                 {heroCta2Text}
               </Link>
@@ -153,8 +152,8 @@ export default function HeroSection() {
         }`}
         style={{ transitionDelay: "1.5s" }}
       >
-        <span className="text-[0.5rem] text-[#F5F0E8]/25 tracking-[0.3em] uppercase font-body">Découvrir</span>
-        <div className="w-[1px] h-6 bg-gradient-to-b from-[#C9A84C]/30 to-transparent animate-pulse" />
+        <span className="text-[0.45rem] text-[#F5F0E8]/20 tracking-[0.3em] uppercase font-body">Découvrir</span>
+        <div className="w-[1px] h-5 bg-gradient-to-b from-[#C9A84C]/25 to-transparent animate-pulse" />
       </div>
     </section>
   );
