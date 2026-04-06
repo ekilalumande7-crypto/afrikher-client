@@ -53,7 +53,7 @@ export default function MagazineHero({
             </span>
           </div>
 
-          <h1 className="fade-in-up hero-title mt-8 font-display text-[2.7rem] md:text-[4.4rem] lg:text-[5.6rem] leading-[0.96] tracking-[-0.02em] text-[#F5F0E8] [animation-delay:120ms]">
+          <h1 className="fade-in-up hero-title mt-8 font-display text-[2.35rem] md:text-[3.7rem] lg:text-[4.8rem] leading-[0.98] tracking-[-0.02em] text-[#F5F0E8] [animation-delay:120ms]">
             {heroTitle}
           </h1>
 
