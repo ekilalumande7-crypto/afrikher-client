@@ -57,7 +57,7 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ========== HEADER BAR — Minimal: Logo + Menu ========== */}
+      {/* ========== HEADER BAR — Logo with MAGAZINE badge + Menu ========== */}
       <header
         className={cn(
           "fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 md:px-12",
@@ -65,10 +65,13 @@ export default function Navbar() {
         )}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="group">
-            <span className="text-[1.6rem] md:text-[1.8rem] font-display font-light tracking-[0.35em] text-[#F5F0E8] uppercase leading-none transition-colors duration-300 group-hover:text-[#C9A84C]">
+          {/* Logo with gold MAGAZINE badge */}
+          <Link href="/" className="group flex items-center gap-3">
+            <span className="text-[1.4rem] md:text-[1.6rem] font-display font-light tracking-[0.25em] text-[#F5F0E8] uppercase leading-none transition-colors duration-300 group-hover:text-[#C9A84C]">
               AFRIKHER
+            </span>
+            <span className="text-[0.45rem] font-body font-semibold tracking-[0.2em] uppercase text-[#C9A84C] border border-[#C9A84C]/40 px-2 py-[3px] leading-none transition-all duration-300 group-hover:bg-[#C9A84C]/10 group-hover:border-[#C9A84C]/60">
+              Magazine
             </span>
           </Link>
 

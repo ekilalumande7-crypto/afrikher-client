@@ -8,9 +8,11 @@ import { supabase } from "@/lib/supabase";
 interface Product {
   id: string;
   name: string;
-  price: number;
+  description: string;
   images: string[];
   type: string;
+  external_url: string | null;
+  cta_text: string | null;
 }
 
 export default function BoutiquePreview() {
@@ -21,7 +23,7 @@ export default function BoutiquePreview() {
       try {
         const { data } = await supabase
           .from("products")
-          .select("id, name, price, images, type")
+          .select("id, name, description, images, type, external_url, cta_text")
           .eq("status", "active")
           .order("created_at", { ascending: false })
           .limit(4);
@@ -59,16 +61,16 @@ export default function BoutiquePreview() {
           </Link>
         </div>
 
-        {/* Products Grid */}
+        {/* Products Grid — no prices, description + CTA */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
           {products.map((product) => {
             const imageUrl = product.images?.[0] || "";
+            const ctaText = product.cta_text || "Découvrir l'article";
+            const ctaLink = product.external_url || `/boutique/${product.id}`;
+            const isExternal = product.external_url && product.external_url.startsWith("http");
+
             return (
-              <Link
-                key={product.id}
-                href={`/boutique/${product.id}`}
-                className="group"
-              >
+              <div key={product.id} className="group">
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#0A0A0A]/5 mb-6">
                   {imageUrl && (
                     <img
@@ -80,26 +82,60 @@ export default function BoutiquePreview() {
                   )}
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-[#0A0A0A]/30 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
-                    <span className="text-[#F5F0E8] font-body font-medium text-[0.65rem] tracking-[0.2em] uppercase border border-[#F5F0E8]/40 px-6 py-3 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                      Voir le produit
-                    </span>
+                    {isExternal ? (
+                      <a
+                        href={ctaLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#F5F0E8] font-body font-medium text-[0.65rem] tracking-[0.2em] uppercase border border-[#F5F0E8]/40 px-6 py-3 translate-y-4 group-hover:translate-y-0 transition-transform duration-500 hover:bg-[#F5F0E8]/10"
+                      >
+                        {ctaText}
+                      </a>
+                    ) : (
+                      <Link
+                        href={ctaLink}
+                        className="text-[#F5F0E8] font-body font-medium text-[0.65rem] tracking-[0.2em] uppercase border border-[#F5F0E8]/40 px-6 py-3 translate-y-4 group-hover:translate-y-0 transition-transform duration-500 hover:bg-[#F5F0E8]/10"
+                      >
+                        {ctaText}
+                      </Link>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.55rem] uppercase tracking-[0.2em] text-[#C9A84C] font-body font-medium">
-                      {product.type}
-                    </span>
-                    <span className="text-[0.8rem] font-body font-medium text-[#0A0A0A]">
-                      {Number(product.price).toFixed(2)} €
-                    </span>
-                  </div>
+                  <span className="text-[0.55rem] uppercase tracking-[0.2em] text-[#C9A84C] font-body font-medium">
+                    {product.type}
+                  </span>
                   <h3 className="text-lg font-display font-light group-hover:text-[#C9A84C] transition-colors duration-300 leading-tight">
                     {product.name}
                   </h3>
+                  {product.description && (
+                    <p className="text-[0.8rem] font-body text-[#0A0A0A]/50 leading-relaxed line-clamp-2">
+                      {product.description}
+                    </p>
+                  )}
+                  {/* CTA link below card */}
+                  {isExternal ? (
+                    <a
+                      href={ctaLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-[0.65rem] font-body font-semibold uppercase tracking-[0.15em] text-[#C9A84C] hover:text-[#E8C97A] transition-colors duration-300 mt-2"
+                    >
+                      {ctaText}
+                      <ArrowRight size={11} />
+                    </a>
+                  ) : (
+                    <Link
+                      href={ctaLink}
+                      className="inline-flex items-center gap-2 text-[0.65rem] font-body font-semibold uppercase tracking-[0.15em] text-[#C9A84C] hover:text-[#E8C97A] transition-colors duration-300 mt-2"
+                    >
+                      {ctaText}
+                      <ArrowRight size={11} />
+                    </Link>
+                  )}
                 </div>
-              </Link>
+              </div>
             );
           })}
         </div>

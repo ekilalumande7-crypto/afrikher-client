@@ -31,7 +31,6 @@ export default function HeroSection() {
       }
     };
     fetchConfig();
-    // Trigger fade-in after a short delay
     const timer = setTimeout(() => setLoaded(true), 100);
     return () => clearTimeout(timer);
   }, []);
@@ -58,22 +57,22 @@ export default function HeroSection() {
         }}
       />
 
-      {/* Dark overlay — stronger on left for text readability */}
+      {/* Dark overlay — stronger on left/center-left for text readability */}
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(100deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.2) 100%)"
+          background: "linear-gradient(100deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.80) 30%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.30) 75%, rgba(0,0,0,0.15) 100%)"
         }}
       />
 
       {/* Subtle gold accent line — left edge */}
       <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#C9A84C]/20 to-transparent" />
 
-      {/* Content — Bottom Left */}
-      <div className="absolute bottom-[12vh] md:bottom-[15vh] left-[6%] md:left-[10%] max-w-[680px] z-10">
+      {/* Content — Bottom Left, controlled width */}
+      <div className="absolute bottom-[12vh] md:bottom-[15vh] left-[6%] md:left-[10%] max-w-[560px] z-10">
         {/* Overline */}
         <div
-          className={`mb-6 transition-all duration-1000 ease-out ${
+          className={`mb-8 transition-all duration-1000 ease-out ${
             loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
           }`}
           style={{ transitionDelay: "0.3s" }}
@@ -83,19 +82,19 @@ export default function HeroSection() {
           </span>
         </div>
 
-        {/* Brand Name */}
+        {/* Brand Name — reduced size, tighter spacing, max-width constrained */}
         <h1
-          className={`hero-title text-[14vw] md:text-[8rem] uppercase leading-none mb-4 gold-shimmer transition-all duration-1000 ease-out ${
+          className={`hero-title text-[10vw] md:text-[6rem] uppercase leading-none mb-6 gold-shimmer transition-all duration-1000 ease-out ${
             loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
-          style={{ transitionDelay: "0.5s" }}
+          style={{ transitionDelay: "0.5s", maxWidth: "520px" }}
         >
           {siteName}
         </h1>
 
         {/* Tagline — one strong phrase */}
         <h2
-          className={`font-display font-light text-[1.4rem] md:text-[2.2rem] text-[#F5F0E8] leading-[1.2] mb-6 transition-all duration-1000 ease-out ${
+          className={`font-display font-light text-[1.3rem] md:text-[2rem] text-[#F5F0E8] leading-[1.2] mb-8 transition-all duration-1000 ease-out ${
             loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
           style={{ transitionDelay: "0.7s" }}
@@ -105,7 +104,7 @@ export default function HeroSection() {
 
         {/* Description — short, emotional */}
         <p
-          className={`font-body text-[0.85rem] font-light text-[#F5F0E8]/50 max-w-[440px] leading-[1.9] tracking-wide transition-all duration-1000 ease-out ${
+          className={`font-body text-[0.85rem] font-light text-[#F5F0E8]/50 max-w-[420px] leading-[1.9] tracking-wide transition-all duration-1000 ease-out ${
             loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
           style={{ transitionDelay: "0.9s" }}
@@ -113,24 +112,24 @@ export default function HeroSection() {
           {siteDescription}
         </p>
 
-        {/* CTAs */}
+        {/* CTAs — taller, aligned, smoother hover */}
         <div
-          className={`flex flex-col sm:flex-row gap-5 mt-12 transition-all duration-1000 ease-out ${
+          className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-5 mt-14 transition-all duration-1000 ease-out ${
             loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
           style={{ transitionDelay: "1.1s" }}
         >
-          {/* CTA Primary — Gold filled */}
+          {/* CTA Primary — Gold filled, taller */}
           <Link
             href={heroCta1Link}
-            className="bg-[#C9A84C] text-[#0A0A0A] px-10 py-4 font-body font-medium text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] transition-all duration-400 text-center"
+            className="bg-[#C9A84C] text-[#0A0A0A] px-10 py-[18px] font-body font-semibold text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] hover:shadow-[0_0_30px_rgba(201,168,76,0.25)] transition-all duration-500 ease-out text-center"
           >
             {heroCta1Text}
           </Link>
-          {/* CTA Secondary — Outline gold */}
+          {/* CTA Secondary — Outline gold, taller */}
           <Link
             href={heroCta2Link}
-            className="border border-[#C9A84C]/40 text-[#C9A84C] px-10 py-4 font-body font-medium text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] hover:border-[#C9A84C] transition-all duration-400 text-center"
+            className="border border-[#C9A84C]/40 text-[#C9A84C] px-10 py-[18px] font-body font-semibold text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C] transition-all duration-500 ease-out text-center"
           >
             {heroCta2Text}
           </Link>
