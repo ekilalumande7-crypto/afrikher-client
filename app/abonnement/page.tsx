@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface FaqItem {
@@ -22,6 +22,112 @@ interface Plan {
   featured: boolean;
   originalPrice?: string;
   discountLabel?: string;
+  note?: string;
+  enabled: boolean;
+}
+
+function SubscriptionCard({
+  plan,
+  loading,
+  onSubscribe,
+}: {
+  plan: Plan;
+  loading: string | null;
+  onSubscribe: (planId: string) => void;
+}) {
+  const isPriceVisible = plan.price && plan.price.trim() !== "";
+  const visibleFeatures = plan.features.filter(Boolean).slice(0, 4);
+
+  return (
+    <article
+      className={`relative flex h-full flex-col border px-7 py-8 md:px-9 md:py-9 ${
+        plan.featured
+          ? "border-[#C9A84C]/60 bg-[#0A0A0A] text-[#F5F0E8]"
+          : "border-black/8 bg-[#FBF7F0] text-[#0A0A0A]"
+      }`}
+    >
+      {plan.featured && (
+        <div className="mb-6">
+          <span className="inline-flex border border-[#C9A84C]/45 px-3 py-1 font-body text-[0.62rem] font-medium uppercase tracking-[0.22em] text-[#C9A84C]">
+            {plan.discountLabel || "Le plus populaire"}
+          </span>
+        </div>
+      )}
+
+      <div className="border-b border-current/10 pb-6">
+        <p
+          className={`font-body text-[0.66rem] font-medium uppercase tracking-[0.26em] ${
+            plan.featured ? "text-[#C9A84C]" : "text-[#8A6E2F]"
+          }`}
+        >
+          {plan.name}
+        </p>
+
+        <div className="mt-4 flex items-end gap-2">
+          {isPriceVisible ? (
+            <>
+              <span className="font-display text-[2.9rem] leading-none tracking-[-0.03em] md:text-[3.4rem]">
+                {plan.price} €
+              </span>
+              <span className={`pb-1 font-body text-sm ${plan.featured ? "text-[#F5F0E8]/58" : "text-[#0A0A0A]/50"}`}>
+                / {plan.period}
+              </span>
+            </>
+          ) : (
+            <span className="font-display text-[2.2rem] leading-none tracking-[-0.02em] md:text-[2.6rem]">
+              Bientôt disponible
+            </span>
+          )}
+        </div>
+
+        {plan.note && (
+          <p className={`mt-3 font-body text-[0.76rem] uppercase tracking-[0.16em] ${plan.featured ? "text-[#C9A84C]/88" : "text-[#8A6E2F]"}`}>
+            {plan.note}
+          </p>
+        )}
+
+        {plan.originalPrice && (
+          <p className={`mt-3 font-body text-sm ${plan.featured ? "text-[#F5F0E8]/44" : "text-[#0A0A0A]/38"}`}>
+            <span className="line-through">{plan.originalPrice} €</span>
+          </p>
+        )}
+
+        <p className={`mt-4 max-w-[24rem] font-body text-[0.95rem] leading-[1.7] ${plan.featured ? "text-[#F5F0E8]/72" : "text-[#0A0A0A]/58"}`}>
+          {plan.description}
+        </p>
+      </div>
+
+      <ul className="flex flex-1 flex-col gap-4 py-6">
+        {visibleFeatures.map((feature, index) => (
+          <li key={index} className="flex items-start gap-3">
+            <Check size={16} className={`mt-0.5 shrink-0 ${plan.featured ? "text-[#C9A84C]" : "text-[#8A6E2F]"}`} />
+            <span className={`font-body text-[0.94rem] leading-[1.65] ${plan.featured ? "text-[#F5F0E8]/76" : "text-[#0A0A0A]/62"}`}>
+              {feature}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => onSubscribe(plan.id)}
+        disabled={loading !== null || !plan.enabled}
+        className={`inline-flex w-full items-center justify-center gap-3 border px-5 py-3.5 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] transition-all duration-300 ${
+          plan.featured
+            ? "border-[#C9A84C] bg-[#C9A84C] text-[#0A0A0A] hover:bg-transparent hover:text-[#C9A84C]"
+            : "border-[#0A0A0A] bg-[#0A0A0A] text-[#F5F0E8] hover:border-[#C9A84C] hover:bg-[#C9A84C] hover:text-[#0A0A0A]"
+        } ${!plan.enabled ? "cursor-not-allowed opacity-55" : ""}`}
+      >
+        {loading === plan.id ? (
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        ) : (
+          <>
+            <span>{plan.cta}</span>
+            <ArrowRight size={14} />
+          </>
+        )}
+      </button>
+    </article>
+  );
 }
 
 export default function AbonnementsPage() {
@@ -34,7 +140,6 @@ export default function AbonnementsPage() {
   useEffect(() => {
     async function loadConfig() {
       try {
-        // supabase imported from lib/supabase
         const { data } = await supabase
           .from("site_config")
           .select("key, value")
@@ -46,25 +151,27 @@ export default function AbonnementsPage() {
         });
         setConfig(configMap);
 
-        // Build plans from config
         const builtPlans: Plan[] = [];
 
         if (configMap.sub_monthly_name) {
           builtPlans.push({
             id: "monthly",
             name: configMap.sub_monthly_name || "Mensuel",
-            price: configMap.sub_monthly_price || "15",
+            price: configMap.sub_monthly_price || "",
             period: configMap.sub_monthly_period || "mois",
             description: configMap.sub_monthly_description || "",
             features: (configMap.sub_monthly_features || "").split("||").filter(Boolean),
-            cta: configMap.sub_monthly_cta || "S'abonner",
+            cta: configMap.sub_monthly_cta || "Choisir le mensuel",
             featured: false,
             originalPrice: configMap.sub_monthly_original_price || "",
             discountLabel: configMap.sub_monthly_discount_label || "",
+            note: configMap.sub_monthly_note || "",
+            enabled: true,
           });
         }
 
         if (configMap.sub_annual_name) {
+          const annualEnabled = configMap.sub_annual_enabled !== "false";
           builtPlans.push({
             id: "annual",
             name: configMap.sub_annual_name || "Annuel",
@@ -72,23 +179,27 @@ export default function AbonnementsPage() {
             period: configMap.sub_annual_period || "an",
             description: configMap.sub_annual_description || "",
             features: (configMap.sub_annual_features || "").split("||").filter(Boolean),
-            cta: configMap.sub_annual_cta || "S'abonner",
+            cta: configMap.sub_annual_cta || "Rejoindre la liste d'attente",
             featured: configMap.sub_annual_featured === "true",
             originalPrice: configMap.sub_annual_original_price || "",
-            discountLabel: configMap.sub_annual_discount_label || "",
+            discountLabel: configMap.sub_annual_badge || configMap.sub_annual_discount_label || "",
+            note: configMap.sub_annual_note || "",
+            enabled: annualEnabled,
           });
         }
 
         setPlans(builtPlans);
 
-        // Build FAQ items
         const faqRaw = configMap.sub_faq_items || "";
         if (faqRaw) {
-          const items = faqRaw.split("||||").filter(Boolean).map((pair) => {
-            const parts = pair.split("||");
-            return { question: parts[0] || "", answer: parts[1] || "" };
-          });
-          setFaqItems(items);
+          const items = faqRaw
+            .split("||||")
+            .filter(Boolean)
+            .map((pair) => {
+              const parts = pair.split("||");
+              return { question: parts[0] || "", answer: parts[1] || "" };
+            });
+          setFaqItems(items.slice(0, 4));
         }
       } catch (err) {
         console.error("Error loading subscription config:", err);
@@ -100,6 +211,9 @@ export default function AbonnementsPage() {
   }, []);
 
   const handleSubscribe = async (planId: string) => {
+    const selectedPlan = plans.find((plan) => plan.id === planId);
+    if (!selectedPlan?.enabled) return;
+
     setLoading(planId);
     try {
       const res = await fetch("/api/fidepay/subscribe", {
@@ -120,29 +234,31 @@ export default function AbonnementsPage() {
 
   if (pageLoading) {
     return (
-      <main className="min-h-screen bg-brand-cream text-brand-dark">
+      <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
         <Navbar />
-        <div className="flex items-center justify-center py-60">
-          <Loader2 size={40} className="animate-spin text-brand-gold" />
+        <div className="flex items-center justify-center py-48">
+          <Loader2 size={40} className="animate-spin text-[#C9A84C]" />
         </div>
         <Footer />
       </main>
     );
   }
 
-  // If subscriptions are disabled
   if (config.sub_enabled === "false") {
     return (
-      <main className="min-h-screen bg-brand-cream text-brand-dark">
+      <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
         <Navbar />
-        <section className="pt-40 pb-40 px-6 bg-brand-dark text-brand-cream">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">Abonnements</h1>
-            <p className="text-brand-gold italic text-xl font-display mb-12">
-              Les abonnements seront bientôt disponibles.
+        <section className="bg-[#0A0A0A] px-6 pb-28 pt-28 text-[#F5F0E8] md:pb-32 md:pt-32">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="font-body text-[0.7rem] uppercase tracking-[0.32em] text-[#C9A84C]">
+              Accès privilégié
             </p>
-            <p className="text-brand-gray text-lg">
-              Nous préparons quelque chose d'exceptionnel pour vous. Restez connectée.
+            <h1 className="mt-3 font-display text-[3.4rem] leading-[0.94] md:text-[5.4rem]">
+              Abonnements
+            </h1>
+            <div className="mx-auto mt-6 h-px w-24 bg-[#C9A84C]/75" />
+            <p className="mx-auto mt-5 max-w-2xl font-display text-[1.08rem] italic leading-[1.5] text-[#F5F0E8]/64 md:text-[1.24rem]">
+              Les abonnements seront bientôt disponibles.
             </p>
           </div>
         </section>
@@ -152,112 +268,81 @@ export default function AbonnementsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-brand-cream text-brand-dark">
+    <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
+      <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      {/* Hero */}
-      <section className="pt-40 pb-20 px-6 bg-brand-dark text-brand-cream">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-6xl md:text-8xl font-display font-bold mb-8">
-            {config.sub_hero_title || "Abonnements"}
-          </h1>
-          <p className="text-brand-gold italic text-xl font-display max-w-2xl mx-auto">
-            {config.sub_hero_subtitle || "Rejoignez une communauté de femmes visionnaires."}
+      <section className="bg-[#0A0A0A] px-6 pb-16 pt-28 text-[#F5F0E8] md:pb-20 md:pt-32">
+        <div className="mx-auto max-w-5xl text-center">
+          <p className="font-body text-[0.72rem] uppercase tracking-[0.34em] text-[#C9A84C]">
+            {config.sub_hero_label || "Accès privilégié"}
           </p>
+          <h1 className="mt-3 font-display text-[3.25rem] leading-[0.94] tracking-[-0.03em] md:text-[5.4rem]">
+            {config.sub_hero_title || "Les Abonnements AFRIKHER"}
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl font-display text-[1.04rem] italic leading-[1.5] text-[#F5F0E8]/64 md:text-[1.24rem]">
+            {config.sub_hero_subtitle || "Choisissez l'accès qui vous ouvre l'univers éditorial AFRIKHER."}
+          </p>
+          <div className="mx-auto mt-6 h-px w-24 bg-[#C9A84C]/75" />
         </div>
       </section>
 
-      {/* Plans */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative p-12 border ${
-                plan.featured
-                  ? "bg-brand-dark text-brand-cream border-brand-gold"
-                  : "bg-white text-brand-dark border-brand-charcoal/10"
-              } shadow-xl`}
-            >
-              {plan.featured && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-gold text-brand-dark px-4 py-1 text-[10px] uppercase tracking-widest font-bold">
-                  Le plus populaire
-                </div>
-              )}
-
-              <div className="text-center mb-10">
-                <h3 className="text-3xl font-display font-bold mb-4">{plan.name}</h3>
-                {plan.price && plan.price.trim() !== "" && (
-                  <div className="flex flex-col items-center">
-                    {plan.originalPrice && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-brand-gray line-through text-xl font-display">{plan.originalPrice} €</span>
-                        {plan.discountLabel && (
-                          <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded">{plan.discountLabel}</span>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex items-end justify-center space-x-1">
-                      <span className="text-5xl font-display font-bold">{plan.price} €</span>
-                      <span className="text-brand-gray text-sm mb-2">/ {plan.period}</span>
-                    </div>
-                  </div>
-                )}
-                <p className="mt-6 text-sm text-brand-gray">{plan.description}</p>
-              </div>
-
-              <ul className="space-y-4 mb-12">
-                {plan.features.map((feature, i) => (
-                  <li key={i} className="flex items-start space-x-3 text-sm">
-                    <Check size={18} className="text-brand-gold shrink-0 mt-0.5" />
-                    <span className={plan.featured ? "text-brand-cream/80" : "text-brand-charcoal/80"}>
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={loading !== null}
-                className={`w-full py-4 font-medium uppercase tracking-widest transition-all duration-300 ${
-                  plan.featured
-                    ? "bg-brand-gold text-brand-dark hover:bg-brand-cream"
-                    : "bg-brand-dark text-brand-cream hover:bg-brand-gold hover:text-brand-dark"
-                }`}
-              >
-                {loading === plan.id ? (
-                  <div className="w-5 h-5 border-2 border-current border-t-transparent animate-spin rounded-full mx-auto" />
-                ) : (
-                  plan.cta
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ */}
-      {faqItems.length > 0 && (
-        <section className="py-24 px-6 bg-brand-dark text-brand-cream">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-4xl font-display font-bold mb-8">
-              {config.sub_faq_title || "Une question ?"}
-            </h2>
-            <p className="text-brand-gray mb-12 font-light">
-              {config.sub_faq_text || "Notre équipe est à votre disposition."}
-              {config.sub_faq_email && (
-                <>
-                  {" "}Contactez-nous à{" "}
-                  <span className="text-brand-gold">{config.sub_faq_email}</span>
-                </>
-              )}
+      <section className="px-6 pb-16 pt-14 md:pb-18 md:pt-16">
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-[34rem]">
+            <p className="font-body text-[0.7rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+              {config.sub_section_label || "Les formules"}
             </p>
-            <div className={`grid grid-cols-1 ${faqItems.length > 1 ? "md:grid-cols-2" : ""} gap-8 text-left`}>
+            <h2 className="mt-3 font-display text-[2.2rem] leading-[0.98] tracking-[-0.02em] md:text-[3rem]">
+              {config.sub_section_title || "Deux accès pensés comme une expérience éditoriale"}
+            </h2>
+            <p className="mt-4 font-body text-[0.96rem] leading-[1.72] text-[#0A0A0A]/60">
+              {config.sub_section_intro || "Choisissez la formule qui accompagne votre lecture, avec une présence plus sobre, plus raffinée, plus proche d'un club privé que d'une page tarifaire classique."}
+            </p>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:gap-8">
+            {plans.map((plan) => (
+              <SubscriptionCard
+                key={plan.id}
+                plan={plan}
+                loading={loading}
+                onSubscribe={handleSubscribe}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {faqItems.length > 0 && (
+        <section className="bg-[#0A0A0A] px-6 py-14 text-[#F5F0E8] md:py-16">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-[32rem]">
+              <p className="font-body text-[0.7rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                {config.sub_help_label || "Réassurance"}
+              </p>
+              <h2 className="mt-3 font-display text-[2.1rem] leading-[1] tracking-[-0.02em] md:text-[2.7rem]">
+                {config.sub_faq_title || "Une question ?"}
+              </h2>
+              <p className="mt-4 font-body text-[0.96rem] leading-[1.72] text-[#F5F0E8]/62">
+                {config.sub_faq_text || "Notre équipe vous accompagne pour choisir la formule adaptée."}
+              </p>
+              {config.sub_faq_email && (
+                <p className="mt-4 font-body text-[0.82rem] uppercase tracking-[0.2em] text-[#C9A84C]">
+                  {config.sub_faq_email}
+                </p>
+              )}
+            </div>
+
+            <div className={`mt-10 grid grid-cols-1 gap-6 ${faqItems.length > 1 ? "md:grid-cols-2" : ""}`}>
               {faqItems.map((item, i) => (
-                <div key={i} className="space-y-2">
-                  <h4 className="font-display text-lg text-brand-gold">{item.question}</h4>
-                  <p className="text-sm text-brand-gray">{item.answer}</p>
+                <div key={i} className="border border-white/8 bg-white/[0.03] p-5 md:p-6">
+                  <h4 className="font-display text-[1.18rem] leading-[1.2] text-[#F5F0E8]">
+                    {item.question}
+                  </h4>
+                  <p className="mt-3 font-body text-[0.92rem] leading-[1.7] text-[#F5F0E8]/58">
+                    {item.answer}
+                  </p>
                 </div>
               ))}
             </div>
