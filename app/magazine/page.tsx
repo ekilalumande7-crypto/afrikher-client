@@ -171,8 +171,13 @@ export default function MagazinePage() {
 
   // Hero image from admin CMS or fallback
   const heroImage = siteConfig.magazine_hero_image || latestMagazine?.cover_image || "";
+  const heroBadge = siteConfig.magazine_hero_badge || "AFRIKHER MAGAZINE";
   const heroTitle = siteConfig.magazine_hero_title || "Le magazine qui celebre la femme africaine entrepreneure";
   const heroSubtitle = siteConfig.magazine_hero_subtitle || "Portraits, interviews exclusives et analyses pour celles qui batissent l'Afrique de demain.";
+  const heroPrimaryCtaLabel = siteConfig.magazine_hero_cta_primary_label || "Dernier numero";
+  const heroPrimaryCtaHref = siteConfig.magazine_hero_cta_primary_href || "#issues-section";
+  const heroSecondaryCtaLabel = siteConfig.magazine_hero_cta_secondary_label || "S'abonner";
+  const heroSecondaryCtaHref = siteConfig.magazine_hero_cta_secondary_href || "/abonnement";
 
   return (
     <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-[#F5F0E8]">
@@ -181,8 +186,13 @@ export default function MagazinePage() {
         loading={loading}
         latestMagazine={latestMagazine}
         heroImage={heroImage}
+        heroBadge={heroBadge}
         heroTitle={heroTitle}
         heroSubtitle={heroSubtitle}
+        heroPrimaryCtaLabel={heroPrimaryCtaLabel}
+        heroPrimaryCtaHref={heroPrimaryCtaHref}
+        heroSecondaryCtaLabel={heroSecondaryCtaLabel}
+        heroSecondaryCtaHref={heroSecondaryCtaHref}
       />
       <MagazineIssuesSection magazines={allMagazines} />
       <MagazineBlogSection blogPosts={blogPosts} />
