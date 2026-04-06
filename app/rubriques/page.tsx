@@ -64,14 +64,6 @@ function getVideoThumbnail(url: string, fallback = "") {
   return fallback;
 }
 
-function chunkItems<T>(items: T[], size: number) {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
-}
-
 export default function RubriquesPage() {
   const [loading, setLoading] = useState(true);
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
@@ -263,22 +255,12 @@ export default function RubriquesPage() {
     ...filteredVideos.map((item) => ({ ...item, mediaType: "video" as const })),
   ];
 
-  const topUpSuggestions =
+  const articleSuggestions =
     activeTab === "articles" && normalizedSearch && filteredArticles.length < 3
       ? allContent
           .filter((item) => !filteredArticles.some((filteredItem) => filteredItem.id === item.id))
-          .slice(0, 3 - filteredArticles.length)
+          .slice(0, Math.max(0, 3 - filteredArticles.length))
       : [];
-
-  const articleDisplayItems =
-    activeTab === "articles" && normalizedSearch && filteredArticles.length < 3
-      ? [...filteredArticles, ...topUpSuggestions]
-      : filteredArticles;
-
-  const articlePages = chunkItems(articleDisplayItems, 3);
-  const galleryPages = chunkItems(galleryItems, 3);
-  const photoPages = chunkItems(filteredPhotos, 3);
-  const videoPages = chunkItems(filteredVideos, 3);
 
   const activeCount =
     activeTab === "articles"
@@ -534,12 +516,12 @@ export default function RubriquesPage() {
   };
 
   return (
-    <main className="h-screen snap-y snap-mandatory overflow-y-auto scroll-smooth bg-[#F5F0E8] text-[#0A0A0A]">
+    <main className="bg-[#F5F0E8] text-[#0A0A0A]">
       <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      <section className="min-h-screen snap-start bg-[#F5F0E8] pb-8 pt-24">
-        <div className="flex min-h-[calc(100vh-6.5rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
+      <section className="bg-[#F5F0E8] pb-8 pt-24">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
             <div>
               <p className="mb-3 font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
@@ -548,11 +530,11 @@ export default function RubriquesPage() {
               <h1 className="font-display text-[2.6rem] leading-[0.96] tracking-[-0.025em] text-[#0A0A0A] md:text-[3.8rem]">
                 Les Rubriques<span className="text-[#C9A84C]">.</span>
               </h1>
-              <p className="mt-3 max-w-[34rem] font-body text-[0.98rem] leading-[1.75] text-[#0A0A0A]/58">
+              <p className="mt-2.5 max-w-[34rem] font-body text-[0.98rem] leading-[1.72] text-[#0A0A0A]/58">
                 {siteConfig.rubriques_editorial_sous_titre ||
                   "Un sommaire éditorial pensé comme une sélection AFRIKHER : articles, galerie, photos et vidéos à parcourir avec clarté."}
               </p>
-              <p className="mt-4 max-w-[38rem] font-body text-[0.95rem] leading-[1.75] text-[#0A0A0A]/66">
+              <p className="mt-3.5 max-w-[38rem] font-body text-[0.95rem] leading-[1.72] text-[#0A0A0A]/66">
                 {editorialTexte}
               </p>
             </div>
@@ -569,9 +551,9 @@ export default function RubriquesPage() {
                       ? "Rechercher dans la galerie..."
                       : activeTab === "photos"
                         ? "Rechercher une photo..."
-                    : activeTab === "videos"
-                      ? "Rechercher une vidéo..."
-                      : "Rechercher un contenu..."
+                        : activeTab === "videos"
+                          ? "Rechercher une vidéo..."
+                          : "Rechercher un contenu..."
                 }
                 className="w-full rounded-2xl border border-[#E6DFD2] bg-white/90 py-3 pl-5 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors placeholder:text-[#8D877C] focus:border-[#C9A84C]"
               />
@@ -583,7 +565,7 @@ export default function RubriquesPage() {
           </div>
 
           {(editorialImage || editorialCitation) && (
-            <div className="mt-6 rounded-[1.75rem] border border-[#EAE2D4] bg-white/56 px-6 py-5 md:px-8">
+            <div className="mt-5 rounded-[1.75rem] border border-[#EAE2D4] bg-white/56 px-6 py-4.5 md:px-8">
               <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
                 {editorialImage && (
                   <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-[#C9A84C]/30">
@@ -602,8 +584,12 @@ export default function RubriquesPage() {
               </div>
             </div>
           )}
+        </div>
+      </section>
 
-          <div className="mt-8 border-t border-black/[0.06] pt-6">
+      <section className="bg-[#F5F0E8] pb-6">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
+          <div className="border-t border-black/[0.06] pt-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-wrap items-center gap-4">
                 {CONTENT_TABS.map((tab) => (
@@ -628,9 +614,10 @@ export default function RubriquesPage() {
           </div>
         </div>
       </section>
-      {loading ? (
-        <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
-          <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
+
+      <section className="bg-[#F5F0E8] pb-16">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
+          {loading ? (
             <div className="grid w-full grid-cols-1 items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="animate-pulse">
@@ -641,161 +628,108 @@ export default function RubriquesPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-      ) : activeTab === "articles" ? (
-        articlePages.length === 0 ? (
-          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
-            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
-              {renderEmptyState("articles")}
-            </div>
-          </section>
-        ) : (
-          articlePages.map((pageItems, pageIndex) => (
-            <section
-              key={`articles-page-${pageIndex}`}
-              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
-            >
-              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
-                <div className="mb-10 flex items-end justify-between gap-6">
-                  <div>
-                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                      Sélection éditoriale
-                    </p>
-                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                      Articles AFRIKHER
-                    </h2>
-                  </div>
-                  {articlePages.length > 1 && (
-                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
-                      Écran {pageIndex + 1}/{articlePages.length}
-                    </p>
+          ) : activeTab === "articles" ? (
+            filteredArticles.length === 0 ? (
+              renderEmptyState("articles")
+            ) : (
+              <div className="space-y-8">
+                <div>
+                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Sélection éditoriale
+                  </p>
+                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                    Articles AFRIKHER
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredArticles.map((item) => renderArticleCard(item))}
+                </div>
+
+                {searchQuery.trim() !== "" &&
+                  filteredArticles.length < 3 &&
+                  articleSuggestions.length > 0 && (
+                    <div className="border-t border-black/[0.06] pt-8">
+                      <div className="mb-6">
+                        <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                          À découvrir aussi
+                        </p>
+                        <p className="mt-2 font-body text-sm text-[#8D877C]">
+                          Une sélection complémentaire pour garder une page vivante même avec peu de résultats.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                        {articleSuggestions.map((item) => renderArticleCard(item, true))}
+                      </div>
+                    </div>
                   )}
-                </div>
-                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                  {pageItems.map((item) => renderArticleCard(item, normalizedSearch !== ""))}
-                </div>
               </div>
-            </section>
-          ))
-        )
-      ) : activeTab === "gallery" ? (
-        galleryPages.length === 0 ? (
-          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
-            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
-              {renderEmptyState("gallery")}
-            </div>
-          </section>
-        ) : (
-          galleryPages.map((pageItems, pageIndex) => (
-            <section
-              key={`gallery-page-${pageIndex}`}
-              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
-            >
-              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
-                <div className="mb-10 flex items-end justify-between gap-6">
-                  <div>
-                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                      Galerie éditoriale
-                    </p>
-                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                      Photos &amp; vidéos
-                    </h2>
-                  </div>
-                  {galleryPages.length > 1 && (
-                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
-                      Écran {pageIndex + 1}/{galleryPages.length}
-                    </p>
-                  )}
+            )
+          ) : activeTab === "gallery" ? (
+            galleryItems.length === 0 ? (
+              renderEmptyState("gallery")
+            ) : (
+              <div className="space-y-8">
+                <div>
+                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Galerie éditoriale
+                  </p>
+                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                    Photos &amp; vidéos
+                  </h2>
                 </div>
-                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                  {pageItems.map((item) =>
+
+                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {galleryItems.map((item) =>
                     item.mediaType === "photo"
                       ? renderPhotoCard(item)
                       : renderVideoCard(item)
                   )}
                 </div>
               </div>
-            </section>
-          ))
-        )
-      ) : activeTab === "photos" ? (
-        photoPages.length === 0 ? (
-          <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
-            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
-              {renderEmptyState("photos")}
-            </div>
-          </section>
-        ) : (
-          photoPages.map((pageItems, pageIndex) => (
-            <section
-              key={`photos-page-${pageIndex}`}
-              className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
-            >
-              <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
-                <div className="mb-10 flex items-end justify-between gap-6">
-                  <div>
-                    <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                      Galerie photos
-                    </p>
-                    <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                      Photos AFRIKHER
-                    </h2>
-                  </div>
-                  {photoPages.length > 1 && (
-                    <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
-                      Écran {pageIndex + 1}/{photoPages.length}
-                    </p>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                  {pageItems.map((item) => renderPhotoCard(item))}
-                </div>
-              </div>
-            </section>
-          ))
-        )
-      ) : videoPages.length === 0 ? (
-        <section className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28">
-          <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto items-center px-6 md:px-10 lg:px-12">
-            {renderEmptyState("videos")}
-          </div>
-        </section>
-      ) : (
-        videoPages.map((pageItems, pageIndex) => (
-          <section
-            key={`videos-page-${pageIndex}`}
-            className="min-h-screen snap-start bg-[#F5F0E8] pb-20 pt-28"
-          >
-            <div className="flex min-h-[calc(100vh-7rem)] max-w-7xl mx-auto flex-col justify-center px-6 md:px-10 lg:px-12">
-              <div className="mb-10 flex items-end justify-between gap-6">
+            )
+          ) : activeTab === "photos" ? (
+            filteredPhotos.length === 0 ? (
+              renderEmptyState("photos")
+            ) : (
+              <div className="space-y-8">
                 <div>
                   <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                    Sélection vidéo
+                    Galerie photos
                   </p>
                   <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                    Vidéos AFRIKHER
+                    Photos AFRIKHER
                   </h2>
                 </div>
-                {videoPages.length > 1 && (
-                  <p className="font-body text-[0.72rem] uppercase tracking-[0.2em] text-[#8D877C]">
-                    Écran {pageIndex + 1}/{videoPages.length}
-                  </p>
-                )}
+
+                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredPhotos.map((item) => renderPhotoCard(item))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                {pageItems.map((item) => renderVideoCard(item))}
+            )
+          ) : filteredVideos.length === 0 ? (
+            renderEmptyState("videos")
+          ) : (
+            <div className="space-y-8">
+              <div>
+                <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                  Sélection vidéo
+                </p>
+                <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                  Vidéos AFRIKHER
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                {filteredVideos.map((item) => renderVideoCard(item))}
               </div>
             </div>
-          </section>
-        ))
-      )}
-
-      <section className="min-h-screen snap-start bg-[#0A0A0A] pt-28">
-        <div className="flex min-h-[calc(100vh-7rem)] flex-col justify-end">
-          <Footer />
+          )}
         </div>
       </section>
+
+      <Footer />
     </main>
   );
 }
