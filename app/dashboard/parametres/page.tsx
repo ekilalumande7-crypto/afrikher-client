@@ -1,27 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Shield, Mail, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Shield, Trash2 } from "lucide-react";
+import AccountCard from "@/components/account/AccountCard";
+import AccountSectionHeader from "@/components/account/AccountSectionHeader";
 
 export default function ParametresPage() {
   const [user, setUser] = useState<any>(null);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
 
-        // Check newsletter subscription
         const { data } = await supabase
           .from("newsletter_subscribers")
           .select("active")
@@ -56,8 +58,7 @@ export default function ParametresPage() {
     if (error) {
       setMessage("Erreur : " + error.message);
     } else {
-      setMessage("Mot de passe modifié avec succès !");
-      setCurrentPassword("");
+      setMessage("Mot de passe modifié avec succès.");
       setNewPassword("");
       setConfirmPassword("");
     }
@@ -74,105 +75,161 @@ export default function ParametresPage() {
         .eq("email", user.email);
       setNewsletterSubscribed(false);
     } else {
-      await supabase
-        .from("newsletter_subscribers")
-        .upsert({
-          email: user.email,
-          full_name: user.user_metadata?.full_name || "",
-          active: true,
-          subscribed_at: new Date().toISOString(),
-        });
+      await supabase.from("newsletter_subscribers").upsert({
+        email: user.email,
+        full_name: user.user_metadata?.full_name || "",
+        active: true,
+        subscribed_at: new Date().toISOString(),
+      });
       setNewsletterSubscribed(true);
     }
   };
 
   return (
     <div className="space-y-8">
-      {/* Change Password */}
-      <div className="bg-white p-8 md:p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <div className="flex items-center gap-3 mb-8">
-          <Shield size={20} className="text-[#C9A84C]" />
-          <h2 className="text-2xl font-display font-bold">Sécurité</h2>
-        </div>
+      <AccountSectionHeader
+        eyebrow="Réglages"
+        title="Paramètres du compte"
+        description="Gérez votre sécurité, vos préférences éditoriales et les points sensibles de votre espace avec plus de clarté."
+      />
 
+      <AccountCard
+        eyebrow="Sécurité"
+        title="Modifier votre mot de passe"
+        description="Un espace plus propre pour renforcer l’accès à votre compte sans friction inutile."
+      >
         {message && (
-          <div className={`mb-6 p-4 text-sm ${message.includes("Erreur") || message.includes("correspondent") || message.includes("caractères") ? "bg-red-50 text-red-600 border border-red-200" : "bg-green-50 text-green-700 border border-green-200"}`}>
+          <div
+            className={`px-4 py-3 font-body text-sm ${
+              message.includes("Erreur") ||
+              message.includes("correspondent") ||
+              message.includes("caractères")
+                ? "border border-red-200 bg-red-50 text-red-600"
+                : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
             {message}
           </div>
         )}
 
-        <div className="space-y-4 max-w-md">
+        <div className="grid max-w-3xl grid-cols-1 gap-5 md:grid-cols-2">
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold block mb-2">
+            <label className="mb-2.5 block font-body text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-[#8A6E2F]">
               Nouveau mot de passe
             </label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full border border-[#2A2A2A]/20 bg-[#F5F0E8] py-3 px-4 text-[#0A0A0A] focus:outline-none focus:border-[#C9A84C]"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="h-12 w-full border border-black/10 bg-[#F5F0E8] px-4 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors focus:border-[#C9A84C]"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8D877C] transition-colors hover:text-[#C9A84C]"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
+
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-[#9A9A8A] font-bold block mb-2">
+            <label className="mb-2.5 block font-body text-[0.64rem] font-semibold uppercase tracking-[0.24em] text-[#8A6E2F]">
               Confirmer le mot de passe
             </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full border border-[#2A2A2A]/20 bg-[#F5F0E8] py-3 px-4 text-[#0A0A0A] focus:outline-none focus:border-[#C9A84C]"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="h-12 w-full border border-black/10 bg-[#F5F0E8] px-4 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors focus:border-[#C9A84C]"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8D877C] transition-colors hover:text-[#C9A84C]"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={16} />
+                ) : (
+                  <Eye size={16} />
+                )}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handlePasswordChange}
-            disabled={saving || !newPassword}
-            className="px-8 py-3 bg-[#0A0A0A] text-[#F5F0E8] text-xs uppercase tracking-widest font-bold hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all disabled:opacity-50"
-          >
-            {saving ? "Modification..." : "Changer le mot de passe"}
-          </button>
-        </div>
-      </div>
-
-      {/* Newsletter */}
-      <div className="bg-white p-8 md:p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <Mail size={20} className="text-[#C9A84C]" />
-          <h2 className="text-2xl font-display font-bold">Newsletter</h2>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-[#0A0A0A]">Recevoir la newsletter AFRIKHER</p>
-            <p className="text-xs text-[#9A9A8A] mt-1">Portraits, interviews et actualités business.</p>
+        <button
+          onClick={handlePasswordChange}
+          disabled={saving || !newPassword}
+          className="inline-flex items-center justify-center bg-[#0A0A0A] px-6 py-3 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#F5F0E8] transition-colors hover:bg-[#C9A84C] hover:text-[#0A0A0A] disabled:opacity-60"
+        >
+          {saving ? "Modification..." : "Mettre à jour"}
+        </button>
+      </AccountCard>
+
+      <AccountCard
+        eyebrow="Préférences"
+        title="Newsletter AFRIKHER"
+        description="Choisissez si vous souhaitez continuer à recevoir nos portraits, interviews et actualités éditoriales."
+      >
+        <div className="flex flex-col gap-5 border border-black/6 bg-white/45 p-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 items-center justify-center bg-[#F5F0E8] text-[#C9A84C]">
+              <Mail size={18} />
+            </div>
+            <div>
+              <p className="font-body text-[0.98rem] font-medium text-[#0A0A0A]">
+                Recevoir la newsletter AFRIKHER
+              </p>
+              <p className="mt-2 max-w-[30rem] font-body text-[0.92rem] leading-[1.72] text-[#0A0A0A]/56">
+                Un rendez-vous plus régulier avec les interviews, les sélections
+                et les actualités portées par notre univers.
+              </p>
+            </div>
           </div>
+
           <button
             onClick={toggleNewsletter}
-            className={`relative w-12 h-6 rounded-full transition-colors ${
-              newsletterSubscribed ? "bg-[#C9A84C]" : "bg-[#2A2A2A]/20"
+            className={`relative h-7 w-14 rounded-full transition-colors ${
+              newsletterSubscribed ? "bg-[#C9A84C]" : "bg-black/15"
             }`}
           >
             <span
-              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                newsletterSubscribed ? "translate-x-6" : "translate-x-0.5"
+              className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                newsletterSubscribed ? "translate-x-8" : "translate-x-1"
               }`}
             />
           </button>
         </div>
-      </div>
+      </AccountCard>
 
-      {/* Danger Zone */}
-      <div className="bg-white p-8 md:p-10 border border-red-200 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <Trash2 size={20} className="text-red-500" />
-          <h2 className="text-2xl font-display font-bold text-red-600">Zone de danger</h2>
+      <AccountCard
+        eyebrow="Sensibilité"
+        title="Zone de vigilance"
+        description="Les demandes liées à la suppression du compte nécessitent encore un accompagnement direct pour garantir un traitement sûr."
+        className="border-red-200"
+      >
+        <div className="flex items-start gap-4 border border-red-200 bg-red-50 p-6">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-white text-red-500">
+            <Shield size={18} />
+          </div>
+          <div>
+            <h3 className="font-display text-[1.6rem] leading-[1] tracking-[-0.02em] text-red-600">
+              Suppression du compte
+            </h3>
+            <p className="mt-3 font-body text-[0.94rem] leading-[1.72] text-red-700/82">
+              Cette action est irréversible. Pour toute demande de suppression,
+              écrivez à contact@afrikher.com afin que notre équipe vous accompagne
+              avec attention.
+            </p>
+          </div>
+          <Trash2 size={18} className="mt-1 shrink-0 text-red-500" />
         </div>
-        <p className="text-sm text-[#9A9A8A] mb-4">
-          La suppression du compte est irréversible. Contactez-nous à contact@afrikher.com pour demander la suppression de votre compte.
-        </p>
-      </div>
+      </AccountCard>
     </div>
   );
 }

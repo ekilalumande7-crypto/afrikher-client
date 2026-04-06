@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bell, Check, ShoppingBag, CreditCard, FileText, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  Bell,
+  Check,
+  FileText,
+  ShoppingBag,
+} from "lucide-react";
+import AccountCard from "@/components/account/AccountCard";
+import AccountEmptyState from "@/components/account/AccountEmptyState";
+import AccountLoadingBlock from "@/components/account/AccountLoadingBlock";
+import AccountSectionHeader from "@/components/account/AccountSectionHeader";
 
 interface Notification {
   id: string;
@@ -27,7 +37,9 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     const fetchNotifications = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -46,10 +58,7 @@ export default function NotificationsPage() {
   }, []);
 
   const markAsRead = async (id: string) => {
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("id", id);
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
 
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -57,7 +66,9 @@ export default function NotificationsPage() {
   };
 
   const markAllAsRead = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase
@@ -72,80 +83,95 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   if (loading) {
-    return (
-      <div className="bg-white p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-[#F5F0E8] rounded w-48" />
-          <div className="h-16 bg-[#F5F0E8] rounded" />
-          <div className="h-16 bg-[#F5F0E8] rounded" />
-        </div>
-      </div>
-    );
+    return <AccountLoadingBlock />;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-8 md:p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-display font-bold">Notifications</h2>
-            {unreadCount > 0 && (
-              <p className="text-sm text-[#9A9A8A] mt-1">{unreadCount} non lue(s)</p>
-            )}
-          </div>
-          {unreadCount > 0 && (
+    <div className="space-y-8">
+      <AccountSectionHeader
+        eyebrow="Alertes"
+        title="Vos notifications"
+        description="Une lecture plus calme des mises à jour utiles, des informations système et des nouvelles liées à votre compte."
+      />
+
+      <AccountCard
+        eyebrow="Boîte d’activité"
+        title="Historique des notifications"
+        description="Consultez vos messages récents et marquez rapidement les éléments déjà lus."
+        actions={
+          unreadCount > 0 ? (
             <button
               onClick={markAllAsRead}
-              className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold hover:text-[#E8C97A] transition-colors"
+              className="font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#C9A84C] transition-opacity hover:opacity-75"
             >
               Tout marquer comme lu
             </button>
-          )}
-        </div>
-
+          ) : undefined
+        }
+      >
         {notifications.length === 0 ? (
-          <div className="text-center py-16">
-            <Bell size={48} className="mx-auto text-[#9A9A8A]/50 mb-4" />
-            <p className="text-[#9A9A8A] text-lg mb-2">Aucune notification</p>
-            <p className="text-[#9A9A8A] text-sm">Vous serez notifié des mises à jour importantes ici.</p>
-          </div>
+          <AccountEmptyState
+            icon={<Bell size={42} />}
+            title="Aucune notification"
+            description="Vos mises à jour importantes, confirmations et alertes apparaîtront ici au fil de votre activité."
+          />
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {notifications.map((notif) => {
               const Icon = typeIcons[notif.type] || typeIcons.default;
               return (
-                <div
+                <button
                   key={notif.id}
                   onClick={() => !notif.read && markAsRead(notif.id)}
-                  className={`flex items-start gap-4 p-5 border transition-colors cursor-pointer ${
+                  className={`flex w-full items-start gap-4 border p-5 text-left transition-colors ${
                     notif.read
-                      ? "border-[#2A2A2A]/5 bg-white"
-                      : "border-[#C9A84C]/20 bg-[#F5F0E8]/50"
+                      ? "border-black/6 bg-white/45"
+                      : "border-[#C9A84C]/24 bg-[#F5F0E8]"
                   }`}
                 >
-                  <div className={`p-2 rounded-full flex-shrink-0 ${notif.read ? "bg-[#F5F0E8]" : "bg-[#C9A84C]/10"}`}>
-                    <Icon size={16} className={notif.read ? "text-[#9A9A8A]" : "text-[#C9A84C]"} />
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center ${
+                      notif.read ? "bg-[#F2EBDF]" : "bg-[#C9A84C]/12"
+                    }`}
+                  >
+                    <Icon
+                      size={16}
+                      className={notif.read ? "text-[#8D877C]" : "text-[#C9A84C]"}
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className={`text-sm font-bold truncate ${notif.read ? "text-[#9A9A8A]" : "text-[#0A0A0A]"}`}>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3
+                        className={`font-body text-[0.94rem] font-semibold ${
+                          notif.read ? "text-[#0A0A0A]/54" : "text-[#0A0A0A]"
+                        }`}
+                      >
                         {notif.title}
-                      </h4>
+                      </h3>
                       {!notif.read && (
-                        <span className="w-2 h-2 bg-[#C9A84C] rounded-full flex-shrink-0" />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#C9A84C]" />
                       )}
                     </div>
-                    <p className="text-sm text-[#9A9A8A] mt-1">{notif.body}</p>
-                    <p className="text-[10px] text-[#9A9A8A]/70 mt-2">
-                      {new Date(notif.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    <p className="mt-2 font-body text-[0.92rem] leading-[1.72] text-[#0A0A0A]/56">
+                      {notif.body}
+                    </p>
+                    <p className="mt-3 font-body text-[0.68rem] uppercase tracking-[0.18em] text-[#8D877C]">
+                      {new Date(notif.created_at).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         )}
-      </div>
+      </AccountCard>
     </div>
   );
 }

@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { CreditCard, Check } from "lucide-react";
+import { Check, CreditCard, Sparkles } from "lucide-react";
+import AccountCard from "@/components/account/AccountCard";
+import AccountEmptyState from "@/components/account/AccountEmptyState";
+import AccountLoadingBlock from "@/components/account/AccountLoadingBlock";
+import AccountSectionHeader from "@/components/account/AccountSectionHeader";
 
 interface Subscription {
   id: string;
@@ -44,7 +48,6 @@ export default function AbonnementPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Load plan pricing from site_config
       const { data: configData } = await supabase
         .from("site_config")
         .select("key, value")
@@ -70,14 +73,14 @@ export default function AbonnementPage() {
         discountLabel: configMap.sub_annual_discount_label || "",
       });
 
-      // Load subscription (by user_id OR customer_email fallback)
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // Try by user_id first
       const { data: subByUser } = await supabase
         .from("subscriptions")
         .select("*")
@@ -89,7 +92,6 @@ export default function AbonnementPage() {
       if (subByUser) {
         setSubscription(subByUser);
       } else if (user.email) {
-        // Fallback : search by customer_email (orphan subscriptions)
         const { data: subByEmail } = await supabase
           .from("subscriptions")
           .select("*")
@@ -100,7 +102,6 @@ export default function AbonnementPage() {
 
         if (subByEmail) {
           setSubscription(subByEmail);
-          // Link it to user_id for future lookups
           await supabase
             .from("subscriptions")
             .update({ user_id: user.id })
@@ -113,120 +114,151 @@ export default function AbonnementPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="bg-white p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-[#F5F0E8] rounded w-48" />
-          <div className="h-32 bg-[#F5F0E8] rounded" />
-        </div>
-      </div>
-    );
+    return <AccountLoadingBlock />;
   }
+
+  const planCards = [monthlyPlan, annualPlan];
 
   return (
     <div className="space-y-8">
-      <div className="bg-white p-8 md:p-10 border border-[#2A2A2A]/10 shadow-sm">
-        <h2 className="text-2xl md:text-3xl font-display font-bold mb-8">Mon Abonnement</h2>
+      <AccountSectionHeader
+        eyebrow="Membre"
+        title="Votre abonnement"
+        description="Suivez votre statut, vos privilèges et les possibilités d’évolution de votre expérience AFRIKHER."
+      />
 
+      <AccountCard
+        eyebrow="Statut"
+        title="Votre accès actuel"
+        description="Une lecture plus claire de votre situation membre, sans mécanique de comparaison trop technique."
+      >
         {subscription && subscription.status === "active" ? (
-          <div className="space-y-6">
-            <div className="p-6 bg-[#0A0A0A] text-[#F5F0E8] border border-[#C9A84C]/30">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold">
-                  Plan {subscription.plan === "annual" ? "Annuel" : "Mensuel"}
-                </span>
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[10px] uppercase tracking-widest font-bold rounded-sm">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="border border-[#C9A84C]/22 bg-[#0A0A0A] p-6 text-[#F5F0E8]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-[0.64rem] font-semibold uppercase tracking-[0.28em] text-[#C9A84C]">
+                    Plan {subscription.plan === "annual" ? "Annuel" : "Mensuel"}
+                  </p>
+                  <h3 className="mt-4 font-display text-[2.2rem] leading-[1] tracking-[-0.03em] text-[#C9A84C]">
+                    {subscription.amount?.toFixed(2)}{" "}
+                    {subscription.currency || "EUR"}
+                  </h3>
+                  <p className="mt-2 font-body text-[0.82rem] uppercase tracking-[0.2em] text-[#F5F0E8]/42">
+                    / {subscription.plan === "annual" ? "an" : "mois"}
+                  </p>
+                </div>
+                <span className="border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 font-body text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-emerald-300">
                   Actif
                 </span>
               </div>
-              <p className="text-2xl font-display font-bold text-[#C9A84C]">
-                {subscription.amount?.toFixed(2)} {subscription.currency || "EUR"} / {subscription.plan === "annual" ? "an" : "mois"}
-              </p>
+
               {subscription.current_period_end && (
-                <p className="text-sm text-[#9A9A8A] mt-3">
-                  Prochain renouvellement : {new Date(subscription.current_period_end).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                <p className="mt-6 font-body text-[0.94rem] leading-[1.72] text-[#F5F0E8]/58">
+                  Prochain renouvellement :{" "}
+                  {new Date(subscription.current_period_end).toLocaleDateString(
+                    "fr-FR",
+                    {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    }
+                  )}
                 </p>
               )}
             </div>
 
-            <div className="p-5 bg-[#F5F0E8] border border-[#C9A84C]/20">
-              <h4 className="text-sm font-bold uppercase tracking-widest mb-3">Avantages inclus</h4>
-              <ul className="space-y-2">
-                {["Accès illimité à tous les articles", "Éditions exclusives du magazine", "Newsletters premium", "Accès prioritaire aux événements"].map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-[#2A2A2A]">
-                    <Check size={14} className="text-[#C9A84C]" />
-                    {item}
+            <div className="border border-black/6 bg-white/45 p-6">
+              <p className="font-body text-[0.64rem] font-semibold uppercase tracking-[0.28em] text-[#8A6E2F]">
+                Avantages inclus
+              </p>
+              <ul className="mt-5 space-y-3">
+                {[
+                  "Accès illimité à tous les articles",
+                  "Éditions exclusives du magazine",
+                  "Newsletters premium",
+                  "Accès prioritaire aux événements",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-3 font-body text-[0.95rem] leading-[1.68] text-[#0A0A0A]/66"
+                  >
+                    <Check size={16} className="mt-1 shrink-0 text-[#C9A84C]" />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <CreditCard size={48} className="mx-auto text-[#9A9A8A]/50 mb-4" />
-            <p className="text-[#9A9A8A] text-lg mb-2">Aucun abonnement actif</p>
-            <p className="text-[#9A9A8A] text-sm mb-8">
-              Abonnez-vous pour accéder à tout le contenu premium d&apos;AFRIKHER.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg mx-auto">
-              <div className="border border-[#C9A84C]/30 p-6 text-center hover:border-[#C9A84C] transition-colors">
-                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">{monthlyPlan.name}</p>
-                {monthlyPlan.price && monthlyPlan.price.trim() !== "" ? (
-                  <>
-                    {monthlyPlan.originalPrice && (
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <span className="text-[#9A9A8A] line-through text-sm">{monthlyPlan.originalPrice} €</span>
-                        {monthlyPlan.discountLabel && (
-                          <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{monthlyPlan.discountLabel}</span>
-                        )}
-                      </div>
-                    )}
-                    <p className="text-3xl font-display font-bold mb-1">{monthlyPlan.price} €</p>
-                    <p className="text-[#9A9A8A] text-xs mb-4">par {monthlyPlan.period}</p>
-                  </>
-                ) : (
-                  <p className="text-[#9A9A8A] text-xs mb-4 mt-4">Bientôt disponible</p>
-                )}
-                <Link
-                  href="/abonnement"
-                  className="block w-full py-3 bg-[#0A0A0A] text-[#F5F0E8] text-xs uppercase tracking-widest font-bold hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all text-center"
-                >
-                  Choisir
-                </Link>
-              </div>
-              <div className="border-2 border-[#C9A84C] p-6 text-center relative">
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-[#C9A84C] text-[#0A0A0A] text-[9px] uppercase tracking-widest font-bold">
-                  Populaire
-                </span>
-                <p className="text-xs uppercase tracking-widest text-[#C9A84C] font-bold mb-2">{annualPlan.name}</p>
-                {annualPlan.price && annualPlan.price.trim() !== "" ? (
-                  <>
-                    {annualPlan.originalPrice && (
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <span className="text-[#9A9A8A] line-through text-sm">{annualPlan.originalPrice} €</span>
-                        {annualPlan.discountLabel && (
-                          <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{annualPlan.discountLabel}</span>
-                        )}
-                      </div>
-                    )}
-                    <p className="text-3xl font-display font-bold mb-1">{annualPlan.price} €</p>
-                    <p className="text-[#9A9A8A] text-xs mb-4">par {annualPlan.period}</p>
-                  </>
-                ) : (
-                  <p className="text-[#9A9A8A] text-xs mb-4 mt-4">Bientôt disponible</p>
-                )}
-                <Link
-                  href="/abonnement"
-                  className="block w-full py-3 bg-[#C9A84C] text-[#0A0A0A] text-xs uppercase tracking-widest font-bold hover:bg-[#E8C97A] transition-all text-center"
-                >
-                  Choisir
-                </Link>
-              </div>
-            </div>
-          </div>
+          <AccountEmptyState
+            icon={<CreditCard size={42} />}
+            title="Aucun abonnement actif"
+            description="Vous n’avez pas encore ouvert votre accès premium. Les offres AFRIKHER restent disponibles pour enrichir votre lecture et vos privilèges."
+            ctaHref="/abonnement"
+            ctaLabel="Découvrir les offres"
+          />
         )}
-      </div>
+      </AccountCard>
+
+      {!subscription && (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          {planCards.map((plan, index) => (
+            <AccountCard
+              key={plan.name}
+              eyebrow={index === 0 ? "Essentiel" : "Signature"}
+              title={plan.name}
+              description="Une formule pensée comme un accès éditorial, plus qu’un simple tarif."
+              className={index === 1 ? "border-[#C9A84C]/25" : undefined}
+              contentClassName="!space-y-0"
+            >
+              <div className="border border-black/6 bg-white/45 p-6">
+                {plan.price && plan.price.trim() !== "" ? (
+                  <>
+                    {plan.originalPrice && (
+                      <div className="mb-2 flex items-center gap-3">
+                        <span className="font-body text-sm text-[#0A0A0A]/34 line-through">
+                          {plan.originalPrice} €
+                        </span>
+                        {plan.discountLabel && (
+                          <span className="bg-[#C9A84C] px-2 py-1 font-body text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#0A0A0A]">
+                            {plan.discountLabel}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <h3 className="font-display text-[2.6rem] leading-[1] tracking-[-0.03em] text-[#0A0A0A]">
+                      {plan.price} €
+                    </h3>
+                    <p className="mt-2 font-body text-[0.8rem] uppercase tracking-[0.22em] text-[#8A6E2F]">
+                      par {plan.period}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <Sparkles size={18} className="mt-1 shrink-0 text-[#C9A84C]" />
+                    <p className="font-body text-[0.95rem] leading-[1.72] text-[#0A0A0A]/58">
+                      Bientôt disponible. Cette formule sera ajoutée à l’espace
+                      membre dès son ouverture.
+                    </p>
+                  </div>
+                )}
+
+                <Link
+                  href="/abonnement"
+                  className={`mt-6 inline-flex items-center justify-center px-6 py-3 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] transition-colors ${
+                    index === 1
+                      ? "bg-[#C9A84C] text-[#0A0A0A] hover:bg-[#E2C872]"
+                      : "bg-[#0A0A0A] text-[#F5F0E8] hover:bg-[#C9A84C] hover:text-[#0A0A0A]"
+                  }`}
+                >
+                  Choisir cette formule
+                </Link>
+              </div>
+            </AccountCard>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
