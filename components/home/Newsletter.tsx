@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function Newsletter() {
@@ -17,7 +18,7 @@ export default function Newsletter() {
         const { data } = await supabase
           .from("site_config")
           .select("key, value")
-          .like("key", "newsletter_%");
+          .or("key.like.newsletter_%,key.eq.whatsapp_link");
         const map: Record<string, string> = {};
         data?.forEach((row: { key: string; value: string }) => {
           map[row.key] = row.value || "";
@@ -139,6 +140,24 @@ export default function Newsletter() {
           <p className="mt-6 text-red-500/60 text-[0.7rem] font-body">
             Une erreur est survenue. Veuillez réessayer.
           </p>
+        )}
+
+        {/* WhatsApp Community CTA */}
+        {config.whatsapp_link && (
+          <div className="mt-16 pt-12 border-t border-[#0A0A0A]/[0.06]">
+            <p className="text-[#0A0A0A]/35 font-body text-[0.75rem] mb-4">
+              Rejoignez aussi notre communauté
+            </p>
+            <Link
+              href={config.whatsapp_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 border border-[#25D366]/30 text-[#25D366] px-7 py-3.5 font-body font-medium text-[0.6rem] tracking-[0.15em] uppercase hover:bg-[#25D366]/10 hover:border-[#25D366]/50 transition-all duration-300"
+            >
+              <MessageCircle size={15} />
+              <span>Groupe WhatsApp</span>
+            </Link>
+          </div>
         )}
       </div>
     </section>

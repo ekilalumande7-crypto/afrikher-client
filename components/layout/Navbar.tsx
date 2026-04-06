@@ -75,11 +75,21 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Menu Toggle */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="group flex items-center space-x-4 text-[#F5F0E8] transition-colors duration-300"
-          >
+          {/* Right side: Login + Menu */}
+          <div className="flex items-center gap-6">
+            {/* SE CONNECTER — visible on desktop */}
+            <Link
+              href="/auth/login"
+              className="hidden md:inline-flex items-center border border-[#C9A84C]/40 text-[#C9A84C] px-5 py-2 font-body font-medium text-[0.55rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/60 transition-all duration-300"
+            >
+              Se connecter
+            </Link>
+
+            {/* Menu Toggle */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="group flex items-center space-x-4 text-[#F5F0E8] transition-colors duration-300"
+            >
             <span className="text-[0.65rem] font-body font-medium tracking-[0.3em] uppercase group-hover:text-[#C9A84C] transition-colors duration-300">
               {isMenuOpen ? "Fermer" : "Menu"}
             </span>
@@ -98,6 +108,7 @@ export default function Navbar() {
               )} />
             </div>
           </button>
+          </div>
         </div>
       </header>
 
