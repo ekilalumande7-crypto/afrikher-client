@@ -53,17 +53,17 @@ export default function AboutSection() {
   return (
     <section
       ref={sectionRef}
-      className="py-36 md:py-48 px-6 md:px-[10%] bg-[#F5F0E8] text-[#0A0A0A] overflow-hidden relative"
+      className="py-16 md:py-24 px-6 md:px-10 bg-[#F5F0E8] text-[#0A0A0A] overflow-hidden relative"
     >
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      <div className="max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
           {/* Image Column — takes 7/12 = dominant */}
           <div
             className={`relative lg:col-span-7 order-2 lg:order-1 transition-all duration-1000 ease-out ${
               isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
             }`}
           >
-            <div className="aspect-[4/5] overflow-hidden relative group">
+            <div className="aspect-[4/5] max-h-[520px] overflow-hidden relative group">
               <img
                 src={aboutImage}
                 alt="AFRIKHER Vision"
@@ -75,11 +75,11 @@ export default function AboutSection() {
             </div>
 
             {/* Floating Quote Card */}
-            <div className="absolute -bottom-6 right-4 md:right-8 bg-[#0A0A0A] border border-[#C9A84C]/15 p-6 md:p-8 max-w-[260px] z-20">
-              <p className="font-display italic text-[1rem] md:text-[1.15rem] text-[#F5F0E8]/90 leading-snug">
+            <div className="absolute -bottom-4 right-4 md:right-8 bg-[#0A0A0A] border border-[#C9A84C]/15 p-5 md:p-6 max-w-[240px] z-20">
+              <p className="font-display italic text-[0.95rem] md:text-[1.05rem] text-[#F5F0E8]/90 leading-snug">
                 &ldquo;{aboutQuote}&rdquo;
               </p>
-              <div className="mt-4 flex items-center space-x-3">
+              <div className="mt-3 flex items-center space-x-3">
                 <div className="w-6 h-[1px] bg-[#C9A84C]" />
                 <span className="text-[0.5rem] uppercase tracking-[0.2em] font-body font-medium text-[#C9A84C]">
                   {foundressName.split(" ")[0]}
@@ -90,16 +90,16 @@ export default function AboutSection() {
 
           {/* Text Column — takes 5/12, compact and impactful */}
           <div
-            className={`lg:col-span-5 space-y-8 order-1 lg:order-2 transition-all duration-1000 ease-out ${
+            className={`lg:col-span-5 space-y-5 order-1 lg:order-2 transition-all duration-1000 ease-out ${
               isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
             }`}
             style={{ transitionDelay: "0.2s" }}
           >
-            <div className="space-y-5">
+            <div className="space-y-4">
               <span className="text-[#C9A84C] font-body font-medium uppercase tracking-[0.4em] text-[0.55rem] block">
                 L&apos;esprit AFRIKHER
               </span>
-              <h2 className="text-3xl md:text-5xl lg:text-[3.5rem] font-display font-light leading-[0.95] tracking-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-[3rem] font-display font-light leading-[0.95] tracking-tight">
                 {titleMain}{" "}
                 <span className="italic text-[#C9A84C]">
                   {titleAccent}.
@@ -108,7 +108,7 @@ export default function AboutSection() {
             </div>
 
             {/* Short, emotional text — 2-3 lines max */}
-            <p className="text-[#0A0A0A]/50 text-[0.9rem] leading-[1.9] font-body font-light max-w-sm">
+            <p className="text-[#0A0A0A]/50 text-[0.85rem] leading-[1.8] font-body font-light max-w-sm">
               {aboutText}
             </p>
 
@@ -123,7 +123,7 @@ export default function AboutSection() {
             </div>
 
             {/* Foundress mini */}
-            <div className="pt-6 border-t border-[#0A0A0A]/[0.06] flex items-center space-x-4">
+            <div className="pt-4 border-t border-[#0A0A0A]/[0.06] flex items-center space-x-4">
               <div>
                 <p className="font-body text-[0.65rem] font-medium text-[#0A0A0A]/70 tracking-wide">{foundressName}</p>
                 <p className="font-body text-[0.55rem] text-[#C9A84C]/60 tracking-[0.15em] uppercase">{foundressTitle}</p>

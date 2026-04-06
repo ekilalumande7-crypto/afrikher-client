@@ -73,92 +73,90 @@ export default function Newsletter() {
   return (
     <section
       ref={sectionRef}
-      className="py-36 md:py-48 px-6 md:px-[10%] bg-[#F5F0E8] text-[#0A0A0A] relative overflow-hidden"
+      className="py-16 md:py-24 px-6 md:px-10 bg-[#F5F0E8] text-[#0A0A0A] relative overflow-hidden"
     >
-      {/* Subtle gold accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-24 bg-gradient-to-b from-[#C9A84C]/20 to-transparent" />
-
       <div
-        className={`max-w-2xl mx-auto text-center relative z-10 transition-all duration-1000 ease-out ${
+        className={`max-w-[1200px] mx-auto relative z-10 transition-all duration-1000 ease-out ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
         }`}
       >
-        {/* Overline */}
-        <span className="text-[#C9A84C] font-body font-medium uppercase tracking-[0.5em] text-[0.5rem] mb-5 block">
-          Newsletter
-        </span>
+        <div className="max-w-2xl mx-auto text-center">
+          {/* Overline */}
+          <span className="text-[#C9A84C] font-body font-medium uppercase tracking-[0.5em] text-[0.5rem] mb-4 block">
+            Newsletter
+          </span>
 
-        {/* Title — editorial, impactful */}
-        <h2 className="text-3xl md:text-5xl lg:text-[3.5rem] font-display font-light leading-[0.95] tracking-tight mb-5">
-          {titleMain}{" "}
-          <span className="italic text-[#C9A84C]">{titleAccent}</span>
-        </h2>
+          {/* Title */}
+          <h2 className="text-3xl md:text-4xl lg:text-[3rem] font-display font-light leading-[0.95] tracking-tight mb-4">
+            {titleMain}{" "}
+            <span className="italic text-[#C9A84C]">{titleAccent}</span>
+          </h2>
 
-        {/* Subtitle — short, emotional */}
-        <p className="text-[#0A0A0A]/40 font-body font-light text-[0.85rem] leading-[1.8] max-w-md mx-auto mb-14">
-          {subtitle}
-        </p>
+          {/* Subtitle */}
+          <p className="text-[#0A0A0A]/40 font-body font-light text-[0.8rem] leading-[1.8] max-w-md mx-auto mb-8">
+            {subtitle}
+          </p>
 
-        {/* Email Form — wide, elegant */}
-        <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-0">
-            <input
-              type="email"
-              placeholder="Votre adresse email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input-gold flex-1 bg-transparent border border-[#0A0A0A]/10 py-5 px-8 text-[#0A0A0A] text-[0.8rem] font-body tracking-wide focus:outline-none transition-all duration-400 placeholder:text-[#0A0A0A]/25 sm:border-r-0"
-            />
-            <button
-              type="submit"
-              disabled={status === "loading" || status === "success"}
-              className="btn-gold-glow bg-[#0A0A0A] text-[#F5F0E8] px-10 py-5 font-body font-medium text-[0.6rem] tracking-[0.25em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-500 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
-            >
-              {status === "loading" ? (
-                <div className="w-4 h-4 border-2 border-[#F5F0E8] border-t-transparent animate-spin rounded-full" />
-              ) : status === "success" ? (
-                <>
-                  <CheckCircle2 size={13} />
-                  <span>Inscrit</span>
-                </>
-              ) : (
-                <>
-                  <span>S&apos;inscrire</span>
-                  <ArrowRight size={13} />
-                </>
-              )}
-            </button>
-          </div>
+          {/* Email Form */}
+          <form onSubmit={handleSubmit} className="max-w-xl mx-auto mb-6">
+            <div className="flex flex-col sm:flex-row gap-0">
+              <input
+                type="email"
+                placeholder="Votre adresse email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-gold flex-1 bg-transparent border border-[#0A0A0A]/10 py-4 px-6 text-[#0A0A0A] text-[0.78rem] font-body tracking-wide focus:outline-none transition-all duration-400 placeholder:text-[#0A0A0A]/25 sm:border-r-0"
+              />
+              <button
+                type="submit"
+                disabled={status === "loading" || status === "success"}
+                className="btn-gold-glow bg-[#0A0A0A] text-[#F5F0E8] px-8 py-4 font-body font-medium text-[0.55rem] tracking-[0.25em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-500 disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                {status === "loading" ? (
+                  <div className="w-3.5 h-3.5 border-2 border-[#F5F0E8] border-t-transparent animate-spin rounded-full" />
+                ) : status === "success" ? (
+                  <>
+                    <CheckCircle2 size={12} />
+                    <span>Inscrit</span>
+                  </>
+                ) : (
+                  <>
+                    <span>S&apos;inscrire</span>
+                    <ArrowRight size={12} />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
 
-          <p className="text-[0.5rem] text-[#0A0A0A]/20 tracking-[0.15em] uppercase mt-8 leading-relaxed">
+          <p className="text-[0.45rem] text-[#0A0A0A]/20 tracking-[0.15em] uppercase leading-relaxed">
             En vous inscrivant, vous acceptez notre politique de confidentialité.
           </p>
-        </form>
 
-        {status === "error" && (
-          <p className="mt-6 text-red-500/60 text-[0.7rem] font-body">
-            Une erreur est survenue. Veuillez réessayer.
-          </p>
-        )}
-
-        {/* WhatsApp Community CTA */}
-        {config.whatsapp_link && (
-          <div className="mt-16 pt-12 border-t border-[#0A0A0A]/[0.06]">
-            <p className="text-[#0A0A0A]/35 font-body text-[0.75rem] mb-4">
-              Rejoignez aussi notre communauté
+          {status === "error" && (
+            <p className="mt-4 text-red-500/60 text-[0.7rem] font-body">
+              Une erreur est survenue. Veuillez réessayer.
             </p>
-            <Link
-              href={config.whatsapp_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 border border-[#25D366]/30 text-[#25D366] px-7 py-3.5 font-body font-medium text-[0.6rem] tracking-[0.15em] uppercase hover:bg-[#25D366]/10 hover:border-[#25D366]/50 transition-all duration-300"
-            >
-              <MessageCircle size={15} />
-              <span>Groupe WhatsApp</span>
-            </Link>
-          </div>
-        )}
+          )}
+
+          {/* WhatsApp CTA — integrated inline, not isolated */}
+          {config.whatsapp_link && (
+            <div className="mt-8 flex items-center justify-center gap-4">
+              <div className="h-[1px] w-12 bg-[#0A0A0A]/[0.08]" />
+              <Link
+                href={config.whatsapp_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-[#25D366] font-body font-medium text-[0.5rem] tracking-[0.15em] uppercase hover:text-[#25D366]/70 transition-colors duration-300"
+              >
+                <MessageCircle size={13} />
+                <span>Rejoindre la communauté WhatsApp</span>
+              </Link>
+              <div className="h-[1px] w-12 bg-[#0A0A0A]/[0.08]" />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
