@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, Clock, Play, Search } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import Link from "next/link";
-import { Clock, Search, ArrowRight } from "lucide-react";
-
-// ââââââââââââââââââââââââââââââââââââââââââââââ
-// TYPES
-// ââââââââââââââââââââââââââââââââââââââââââââââ
 
 interface ContentItem {
   id: string;
@@ -22,45 +18,59 @@ interface ContentItem {
   source: "editorial" | "blog";
 }
 
-interface Category {
+interface PhotoItem {
   id: string;
-  name: string;
-  slug: string;
+  title: string | null;
   description: string | null;
+  image_url: string;
+  category: string | null;
+  featured: boolean;
+}
+
+interface VideoItem {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  thumbnail: string;
 }
 
 interface SiteConfig {
   [key: string]: string;
 }
 
-// ââââââââââââââââââââââââââââââââââââââââââââââ
-// CONSTANTS
-// ââââââââââââââââââââââââââââââââââââââââââââââ
+type ActiveTab = "articles" | "gallery" | "photos" | "videos";
 
-const FILTER_TABS = [
-  { label: "Tout", value: "all" },
-  { label: "Articles", value: "article" },
-  { label: "Interviews", value: "interview" },
-  { label: "Portraits", value: "portrait" },
-  { label: "Dossiers", value: "dossier" },
+const CONTENT_TABS: Array<{ label: string; value: ActiveTab }> = [
+  { label: "Articles", value: "articles" },
+  { label: "Galerie", value: "gallery" },
+  { label: "Photos", value: "photos" },
+  { label: "Vidéos", value: "videos" },
 ];
 
-// ââââââââââââââââââââââââââââââââââââââââââââââ
-// COMPONENT
-// ââââââââââââââââââââââââââââââââââââââââââââââ
+function extractYouTubeId(url: string) {
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
+function getVideoThumbnail(url: string, fallback = "") {
+  const ytId = extractYouTubeId(url);
+  if (ytId) {
+    return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+  }
+  return fallback;
+}
 
 export default function RubriquesPage() {
   const [loading, setLoading] = useState(true);
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("articles");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
-  // FETCH DATA
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
 
   useEffect(() => {
     async function fetchData() {
@@ -72,8 +82,7 @@ export default function RubriquesPage() {
 
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Fetch all data in parallel
-        const [articlesRes, blogRes, categoriesRes, configRes] = await Promise.all([
+        const [articlesRes, blogRes, configRes, galleryRes] = await Promise.all([
           supabase
             .from("articles")
             .select("*, categories(name, slug)")
@@ -84,27 +93,19 @@ export default function RubriquesPage() {
             .select("*")
             .eq("status", "published")
             .order("published_at", { ascending: false }),
+          supabase.from("site_config").select("key, value").like("key", "rubriques_%"),
           supabase
-            .from("categories")
+            .from("gallery_items")
             .select("*")
-            .order("name"),
-          supabase
-            .from("site_config")
-            .select("key, value")
-            .like("key", "rubriques_%"),
+            .order("sort_order", { ascending: true }),
         ]);
 
-        // Build config
         const config: SiteConfig = {};
         (configRes.data || []).forEach((row: { key: string; value: string }) => {
           config[row.key] = row.value || "";
         });
         setSiteConfig(config);
 
-        // Categories
-        setCategories(categoriesRes.data || []);
-
-        // Merge articles + blog posts
         const editorialItems: ContentItem[] = (articlesRes.data || []).map((a: any) => ({
           id: a.id,
           title: a.title,
@@ -134,8 +135,38 @@ export default function RubriquesPage() {
             new Date(b.published_at || 0).getTime() -
             new Date(a.published_at || 0).getTime()
         );
-
         setAllContent(combined);
+
+        const parsedPhotos: PhotoItem[] = (galleryRes.data || [])
+          .filter((item: any) => Boolean(item.image_url))
+          .map((item: any) => ({
+            id: item.id,
+            title: item.title || "",
+            description: item.description || "",
+            image_url: item.image_url,
+            category: item.category || "",
+            featured: Boolean(item.featured),
+          }));
+        setPhotos(parsedPhotos);
+
+        let parsedVideos: VideoItem[] = [];
+        try {
+          const rawVideos = config.rubriques_videos ? JSON.parse(config.rubriques_videos) : [];
+          if (Array.isArray(rawVideos)) {
+            parsedVideos = rawVideos
+              .filter((item) => item && typeof item === "object" && item.url)
+              .map((item: any, index: number) => ({
+                id: String(item.id || `video-${index}`),
+                title: item.title || item.titre || "Vidéo AFRIKHER",
+                description: item.description || "",
+                url: item.url,
+                thumbnail: item.thumbnail || item.image || getVideoThumbnail(item.url, ""),
+              }));
+          }
+        } catch {
+          parsedVideos = [];
+        }
+        setVideos(parsedVideos);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -145,38 +176,57 @@ export default function RubriquesPage() {
     fetchData();
   }, []);
 
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
-  // FILTERING
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
+  const normalizedSearch = searchQuery.trim().toLowerCase();
 
-  const filtered = allContent.filter((item) => {
-    const matchSearch =
-      !searchQuery ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchType =
-      activeFilter === "all" || item.type === activeFilter;
-
-    const matchCategory =
-      activeCategory === "all" || item.category === activeCategory;
-
-    return matchSearch && matchType && matchCategory;
+  const filteredArticles = allContent.filter((item) => {
+    if (!normalizedSearch) return true;
+    return (
+      item.title.toLowerCase().includes(normalizedSearch) ||
+      item.excerpt.toLowerCase().includes(normalizedSearch) ||
+      item.category.toLowerCase().includes(normalizedSearch)
+    );
   });
 
-  const hasActiveConstraints =
-    activeFilter !== "all" || activeCategory !== "all" || searchQuery.trim() !== "";
+  const filteredPhotos = photos.filter((item) => {
+    if (!normalizedSearch) return true;
+    return (
+      (item.title || "").toLowerCase().includes(normalizedSearch) ||
+      (item.description || "").toLowerCase().includes(normalizedSearch) ||
+      (item.category || "").toLowerCase().includes(normalizedSearch)
+    );
+  });
 
-  const suggestions = allContent
-    .filter((item) => !filtered.some((filteredItem) => filteredItem.id === item.id))
-    .slice(0, Math.max(0, 3 - filtered.length));
+  const filteredVideos = videos.filter((item) => {
+    if (!normalizedSearch) return true;
+    return (
+      item.title.toLowerCase().includes(normalizedSearch) ||
+      item.description.toLowerCase().includes(normalizedSearch)
+    );
+  });
+
+  const galleryItems = [
+    ...filteredPhotos.map((item) => ({ ...item, mediaType: "photo" as const })),
+    ...filteredVideos.map((item) => ({ ...item, mediaType: "video" as const })),
+  ];
+
+  const activeCount =
+    activeTab === "articles"
+      ? filteredArticles.length
+      : activeTab === "gallery"
+        ? galleryItems.length
+        : activeTab === "photos"
+          ? filteredPhotos.length
+          : filteredVideos.length;
+
+  const articleSuggestions =
+    activeTab === "articles" && normalizedSearch
+      ? allContent
+          .filter((item) => !filteredArticles.some((filteredItem) => filteredItem.id === item.id))
+          .slice(0, Math.max(0, 3 - filteredArticles.length))
+      : [];
 
   const getItemHref = (item: ContentItem) =>
     item.source === "blog" ? `/blog/${item.slug}` : `/rubriques/${item.slug}`;
-
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
-  // HELPERS
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
 
   const formatDate = (d: string | null) => {
     if (!d) return "";
@@ -192,41 +242,230 @@ export default function RubriquesPage() {
     return `${Math.max(2, Math.ceil(words / 200))} min`;
   };
 
-  const typeLabel = (t: string): string => {
-    const m: Record<string, string> = {
-      article: "Article",
-      interview: "Interview",
-      portrait: "Portrait",
-      dossier: "Dossier",
+  const editorialImage = siteConfig.rubriques_editorial_image || "";
+  const editorialCitation = siteConfig.rubriques_editorial_citation || "";
+
+  const renderArticleCard = (item: ContentItem, compact = false) => (
+    <Link
+      key={item.id}
+      href={getItemHref(item)}
+      className="group block h-full no-underline"
+    >
+      <article className="flex h-full flex-col">
+        <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+          {item.cover_image ? (
+            <img
+              src={item.cover_image}
+              alt={item.title}
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <span className="font-display text-xl text-[#C9A84C]/30">AFRIKHER</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-1 flex-col pt-4">
+          <div className="mb-2 flex items-center gap-2">
+            {item.category && (
+              <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+                {item.category}
+              </span>
+            )}
+          </div>
+
+          <h3
+            className={`line-clamp-3 font-display tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C] ${
+              compact
+                ? "text-[1.55rem] leading-[1.14]"
+                : "text-[1.9rem] leading-[1.08]"
+            }`}
+          >
+            {item.title}
+          </h3>
+
+          <p
+            className={`mt-3 font-body text-[#0A0A0A]/56 ${
+              compact
+                ? "line-clamp-2 text-[0.9rem] leading-[1.7]"
+                : "line-clamp-3 text-[0.94rem] leading-[1.8]"
+            }`}
+          >
+            {item.excerpt}
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+            Lire l&apos;article
+            <ArrowRight size={13} />
+          </span>
+
+          <div className="mt-auto flex items-center gap-3 pt-4 font-body text-[0.74rem] text-[#8D877C]">
+            {item.published_at && <span>{formatDate(item.published_at)}</span>}
+            <span className="flex items-center gap-1">
+              <Clock size={11} />
+              {readTime(item.excerpt)} de lecture
+            </span>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+
+  const renderPhotoCard = (item: PhotoItem) => (
+    <Link
+      key={item.id}
+      href={item.image_url}
+      target="_blank"
+      rel="noreferrer"
+      className="group block h-full no-underline"
+    >
+      <article className="flex h-full flex-col">
+        <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+          <img
+            src={item.image_url}
+            alt={item.title || "Photo AFRIKHER"}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          />
+        </div>
+
+        <div className="flex flex-1 flex-col pt-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+              Photo
+            </span>
+            {item.category && (
+              <span className="font-body text-[0.62rem] uppercase tracking-[0.18em] text-[#8D877C]">
+                {item.category}
+              </span>
+            )}
+          </div>
+
+          <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+            {item.title || "Instant AFRIKHER"}
+          </h3>
+
+          <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
+            {item.description || "Une image issue de l’univers éditorial AFRIKHER."}
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+            Voir la photo
+            <ArrowRight size={13} />
+          </span>
+        </div>
+      </article>
+    </Link>
+  );
+
+  const renderVideoCard = (item: VideoItem) => (
+    <Link
+      key={item.id}
+      href={item.url}
+      target="_blank"
+      rel="noreferrer"
+      className="group block h-full no-underline"
+    >
+      <article className="flex h-full flex-col">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+          {item.thumbnail ? (
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-[#111111]">
+              <Play size={32} className="text-[#C9A84C]" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/15" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm">
+              <Play size={18} className="translate-x-[1px]" />
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col pt-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+              Vidéo
+            </span>
+          </div>
+
+          <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+            {item.title}
+          </h3>
+
+          <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
+            {item.description || "Une vidéo issue de l’univers éditorial AFRIKHER."}
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
+            Regarder
+            <ArrowRight size={13} />
+          </span>
+        </div>
+      </article>
+    </Link>
+  );
+
+  const renderEmptyState = (tab: ActiveTab) => {
+    const labels: Record<ActiveTab, string> = {
+      articles: "Aucun article trouvé",
+      gallery: "La galerie arrive bientôt",
+      photos: "Aucune photo disponible",
+      videos: "Aucune vidéo disponible",
     };
-    return m[t] || t;
+
+    const descriptions: Record<ActiveTab, string> = {
+      articles:
+        "Essaie une autre recherche pour retrouver la sélection éditoriale AFRIKHER.",
+      gallery:
+        "Les photos et vidéos éditoriales apparaîtront ici dès que le contenu sera alimenté.",
+      photos:
+        "Les visuels éditoriaux apparaîtront ici dès que la galerie photos sera alimentée.",
+      videos:
+        "Les vidéos éditoriales apparaîtront ici dès que la section vidéos sera alimentée.",
+    };
+
+    return (
+      <div className="rounded-[1.75rem] border border-[#E6DFD2] bg-white/72 px-8 py-16 text-center">
+        <p className="font-display text-[2rem] text-[#0A0A0A]/68">{labels[tab]}</p>
+        <p className="mt-3 font-body text-sm leading-relaxed text-[#8D877C]">
+          {descriptions[tab]}
+        </p>
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="mt-6 font-body text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[#C9A84C] hover:underline"
+          >
+            Effacer la recherche
+          </button>
+        )}
+      </div>
+    );
   };
-
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
-  // RENDER
-  // ââââââââââââââââââââââââââââââââââââââââââââââ
-
-  const editorialImage = siteConfig["rubriques_editorial_image"] || "";
-  const editorialCitation = siteConfig["rubriques_editorial_citation"] || "";
 
   return (
     <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
-      <div className="fixed top-0 left-0 right-0 h-20 bg-[#0A0A0A] z-[90]" />
+      <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      <section className="bg-[#F5F0E8] pt-28 pb-10">
+      <section className="bg-[#F5F0E8] pb-10 pt-28">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
             <div>
               <p className="mb-3 font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                {siteConfig["rubriques_editorial_titre"] || "Editorial"}
+                {siteConfig.rubriques_editorial_titre || "Editorial"}
               </p>
-              <h1 className="font-display text-[2.6rem] md:text-[3.8rem] leading-[0.96] tracking-[-0.025em] text-[#0A0A0A]">
+              <h1 className="font-display text-[2.6rem] leading-[0.96] tracking-[-0.025em] text-[#0A0A0A] md:text-[3.8rem]">
                 Les Rubriques<span className="text-[#C9A84C]">.</span>
               </h1>
               <p className="mt-3 max-w-[34rem] font-body text-[0.98rem] leading-[1.75] text-[#0A0A0A]/58">
-                {siteConfig["rubriques_editorial_sous_titre"] ||
-                  "Un sommaire éditorial pensé comme une sélection AFRIKHER : articles, interviews, portraits et dossiers à parcourir avec clarté."}
+                {siteConfig.rubriques_editorial_sous_titre ||
+                  "Un sommaire éditorial pensé comme une sélection AFRIKHER : articles, galerie, photos et vidéos à parcourir avec clarté."}
               </p>
             </div>
 
@@ -235,8 +474,18 @@ export default function RubriquesPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un article..."
-                className="w-full rounded-2xl border border-[#E6DFD2] bg-white/90 py-3 pl-5 pr-11 font-body text-sm text-[#0A0A0A] placeholder-[#8D877C] outline-none transition-colors focus:border-[#C9A84C]"
+                placeholder={
+                  activeTab === "articles"
+                    ? "Rechercher un article..."
+                    : activeTab === "gallery"
+                      ? "Rechercher dans la galerie..."
+                      : activeTab === "photos"
+                        ? "Rechercher une photo..."
+                    : activeTab === "videos"
+                      ? "Rechercher une vidéo..."
+                      : "Rechercher un contenu..."
+                }
+                className="w-full rounded-2xl border border-[#E6DFD2] bg-white/90 py-3 pl-5 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors placeholder:text-[#8D877C] focus:border-[#C9A84C]"
               />
               <Search
                 size={16}
@@ -271,54 +520,26 @@ export default function RubriquesPage() {
       <section className="bg-[#F5F0E8] pb-8">
         <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
           <div className="border-t border-black/[0.06] pt-8">
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  onClick={() => setActiveCategory("all")}
-                  className={`rounded-full px-4 py-2 font-body text-[0.68rem] font-medium uppercase tracking-[0.18em] transition-all duration-300 ${
-                    activeCategory === "all"
-                      ? "border border-[#0A0A0A] bg-[#0A0A0A] text-[#C9A84C]"
-                      : "border border-[#E6DFD2] bg-white/90 text-[#2A2A2A]/76 hover:border-[#C9A84C]/35"
-                  }`}
-                >
-                  Toutes les rubriques
-                </button>
-                {categories.map((cat) => (
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap items-center gap-4">
+                {CONTENT_TABS.map((tab) => (
                   <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.name)}
-                    className={`rounded-full px-4 py-2 font-body text-[0.68rem] font-medium uppercase tracking-[0.18em] transition-all duration-300 ${
-                      activeCategory === cat.name
-                        ? "border border-[#0A0A0A] bg-[#0A0A0A] text-[#C9A84C]"
-                        : "border border-[#E6DFD2] bg-white/90 text-[#2A2A2A]/76 hover:border-[#C9A84C]/35"
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={`border-b pb-1 font-body text-[0.76rem] font-medium uppercase tracking-[0.16em] transition-all duration-300 ${
+                      activeTab === tab.value
+                        ? "border-[#C9A84C] text-[#C9A84C]"
+                        : "border-transparent text-[#8D877C] hover:text-[#0A0A0A]"
                     }`}
                   >
-                    {cat.name}
+                    {tab.label}
                   </button>
                 ))}
               </div>
 
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-4">
-                  {FILTER_TABS.map((tab) => (
-                    <button
-                      key={tab.value}
-                      onClick={() => setActiveFilter(tab.value)}
-                      className={`border-b pb-1 font-body text-[0.76rem] font-medium uppercase tracking-[0.16em] transition-all duration-300 ${
-                        activeFilter === tab.value
-                          ? "border-[#C9A84C] text-[#C9A84C]"
-                          : "border-transparent text-[#8D877C] hover:text-[#0A0A0A]"
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="font-body text-[0.78rem] text-[#8D877C]">
-                  {filtered.length} contenu{filtered.length > 1 ? "s" : ""}
-                </p>
-              </div>
+              <p className="font-body text-[0.78rem] text-[#8D877C]">
+                {activeCount} contenu{activeCount > 1 ? "s" : ""}
+              </p>
             </div>
           </div>
         </div>
@@ -330,167 +551,72 @@ export default function RubriquesPage() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="aspect-[4/3] rounded-[1.25rem] bg-[#E8E5DE] mb-4" />
-                  <div className="h-3 w-1/4 rounded bg-[#E8E5DE] mb-3" />
-                  <div className="h-6 w-3/4 rounded bg-[#E8E5DE] mb-3" />
+                  <div className="mb-4 aspect-[4/3] rounded-[1.25rem] bg-[#E8E5DE]" />
+                  <div className="mb-3 h-3 w-1/4 rounded bg-[#E8E5DE]" />
+                  <div className="mb-3 h-6 w-3/4 rounded bg-[#E8E5DE]" />
                   <div className="h-4 w-full rounded bg-[#E8E5DE]" />
                 </div>
               ))}
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-[1.75rem] border border-[#E6DFD2] bg-white/72 px-8 py-16 text-center">
-              <p className="font-display text-[2rem] text-[#0A0A0A]/68">
-                Aucun contenu trouvé
-              </p>
-              <p className="mt-3 font-body text-sm leading-relaxed text-[#8D877C]">
-                Essaie une autre recherche ou réinitialise les filtres pour retrouver toute la sélection AFRIKHER.
-              </p>
-              <button
-                onClick={() => {
-                  setActiveFilter("all");
-                  setActiveCategory("all");
-                  setSearchQuery("");
-                }}
-                className="mt-6 font-body text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[#C9A84C] hover:underline"
-              >
-                Voir tous les articles
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-10">
-              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={getItemHref(item)}
-                    className="group block h-full no-underline"
-                  >
-                    <article className="flex h-full flex-col">
-                      <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
-                        {item.cover_image ? (
-                          <img
-                            src={item.cover_image}
-                            alt={item.title}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <span className="font-display text-xl text-[#C9A84C]/30">
-                              AFRIKHER
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-1 flex-col pt-4">
-                        <div className="mb-2 flex items-center gap-2">
-                          {item.category && (
-                            <span className="font-body text-[0.62rem] tracking-[0.22em] uppercase text-[#C9A84C]">
-                              {item.category}
-                            </span>
-                          )}
-                          {item.type !== "article" && (
-                            <span className="font-body text-[0.62rem] tracking-[0.18em] uppercase text-[#8D877C]">
-                              {typeLabel(item.type)}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="line-clamp-3 font-display text-[1.9rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-                          {item.title}
-                        </h3>
-
-                        <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
-                          {item.excerpt}
-                        </p>
-
-                        <span className="mt-5 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-                          Lire l&apos;article
-                          <ArrowRight size={13} />
-                        </span>
-
-                        <div className="mt-auto pt-4 flex items-center gap-3 font-body text-[0.74rem] text-[#8D877C]">
-                          {item.published_at && <span>{formatDate(item.published_at)}</span>}
-                          <span className="flex items-center gap-1">
-                            <Clock size={11} />
-                            {readTime(item.excerpt)} de lecture
-                          </span>
-                        </div>
-                      </div>
-                    </article>
-                  </Link>
-                ))}
-              </div>
-
-              {hasActiveConstraints && filtered.length < 3 && suggestions.length > 0 && (
-                <div className="border-t border-black/[0.06] pt-8">
-                  <div className="mb-6 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                        À découvrir aussi
-                      </p>
-                      <p className="mt-2 font-body text-sm text-[#8D877C]">
-                        Une sélection complémentaire pour garder une page vivante même avec peu de résultats.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                    {suggestions.map((item) => (
-                      <Link
-                        key={`suggestion-${item.id}`}
-                        href={getItemHref(item)}
-                        className="group block h-full no-underline"
-                      >
-                        <article className="flex h-full flex-col opacity-88">
-                          <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
-                            {item.cover_image ? (
-                              <img
-                                src={item.cover_image}
-                                alt={item.title}
-                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center">
-                                <span className="font-display text-xl text-[#C9A84C]/30">
-                                  AFRIKHER
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-1 flex-col pt-4">
-                            <div className="mb-2 flex items-center gap-2">
-                              {item.category && (
-                                <span className="font-body text-[0.62rem] tracking-[0.22em] uppercase text-[#C9A84C]">
-                                  {item.category}
-                                </span>
-                              )}
-                            </div>
-                            <h3 className="line-clamp-3 font-display text-[1.55rem] leading-[1.14] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-                              {item.title}
-                            </h3>
-                            <p className="mt-3 line-clamp-2 font-body text-[0.9rem] leading-[1.7] text-[#0A0A0A]/56">
-                              {item.excerpt}
-                            </p>
-                            <span className="mt-4 inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-                              Lire l&apos;article
-                              <ArrowRight size={13} />
-                            </span>
-                            <div className="mt-auto pt-4 flex items-center gap-3 font-body text-[0.74rem] text-[#8D877C]">
-                              {item.published_at && <span>{formatDate(item.published_at)}</span>}
-                            </div>
-                          </div>
-                        </article>
-                      </Link>
-                    ))}
-                  </div>
+          ) : activeTab === "articles" ? (
+            filteredArticles.length === 0 ? (
+              renderEmptyState("articles")
+            ) : (
+              <div className="space-y-10">
+                <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredArticles.map((item) => renderArticleCard(item))}
                 </div>
-              )}
+
+                {searchQuery.trim() !== "" &&
+                  filteredArticles.length < 3 &&
+                  articleSuggestions.length > 0 && (
+                    <div className="border-t border-black/[0.06] pt-8">
+                      <div className="mb-6">
+                        <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                          À découvrir aussi
+                        </p>
+                        <p className="mt-2 font-body text-sm text-[#8D877C]">
+                          Une sélection complémentaire pour garder une page vivante même avec peu de résultats.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                        {articleSuggestions.map((item) => renderArticleCard(item, true))}
+                      </div>
+                    </div>
+                  )}
+              </div>
+            )
+          ) : activeTab === "gallery" ? (
+            galleryItems.length === 0 ? (
+              renderEmptyState("gallery")
+            ) : (
+              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                {galleryItems.map((item) =>
+                  item.mediaType === "photo"
+                    ? renderPhotoCard(item)
+                    : renderVideoCard(item)
+                )}
+              </div>
+            )
+          ) : activeTab === "photos" ? (
+            filteredPhotos.length === 0 ? (
+              renderEmptyState("photos")
+            ) : (
+              <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                {filteredPhotos.map((item) => renderPhotoCard(item))}
+              </div>
+            )
+          ) : filteredVideos.length === 0 ? (
+            renderEmptyState("videos")
+          ) : (
+            <div className="grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+              {filteredVideos.map((item) => renderVideoCard(item))}
             </div>
           )}
         </div>
       </section>
+
       <Footer />
     </main>
   );
