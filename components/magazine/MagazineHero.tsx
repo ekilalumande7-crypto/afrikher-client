@@ -30,7 +30,7 @@ export default function MagazineHero({
   heroSubtitle,
 }: MagazineHeroProps) {
   return (
-    <section className="relative min-h-[78vh] lg:min-h-[88vh] overflow-hidden bg-[#0A0A0A]">
+    <section className="relative snap-start min-h-screen overflow-hidden bg-[#0A0A0A]">
       {loading ? (
         <div className="absolute inset-0 animate-pulse bg-[#1A1A1A]" />
       ) : (
@@ -45,30 +45,30 @@ export default function MagazineHero({
         </>
       )}
 
-      <div className="relative z-10 h-full min-h-[78vh] lg:min-h-[88vh] max-w-7xl mx-auto px-6 md:px-10 lg:px-12 flex items-center">
-        <div className="max-w-[44rem] pt-28 pb-14 md:pt-32 md:pb-16 text-[#F5F0E8]">
+      <div className="relative z-10 h-full min-h-screen max-w-7xl mx-auto px-6 md:px-10 lg:px-12 flex items-center">
+        <div className="max-w-[34rem] pt-28 pb-14 md:pt-30 md:pb-16 text-[#F5F0E8]">
           <div className="fade-in-up">
             <span className="inline-flex items-center border border-[#C9A84C]/25 bg-black/10 px-3.5 py-1.5 font-body text-[0.58rem] font-medium uppercase tracking-[0.34em] text-[#C9A84C] backdrop-blur-sm">
               AFRIKHER MAGAZINE
             </span>
           </div>
 
-          <h1 className="fade-in-up hero-title mt-8 font-display text-[2.35rem] md:text-[3.7rem] lg:text-[4.8rem] leading-[0.98] tracking-[-0.02em] text-[#F5F0E8] [animation-delay:120ms]">
+          <h1 className="fade-in-up hero-title mt-6 font-display text-[2.1rem] md:text-[3.15rem] lg:text-[4rem] leading-[1.02] tracking-[-0.02em] text-[#F5F0E8] [animation-delay:120ms]">
             {heroTitle}
           </h1>
 
-          <p className="fade-in-up mt-6 max-w-[36rem] font-body text-[0.98rem] md:text-[1.08rem] leading-[1.85] text-[#F5F0E8]/[0.76] [animation-delay:220ms]">
+          <p className="fade-in-up mt-5 max-w-[28rem] font-body text-[0.93rem] md:text-[1rem] leading-[1.75] text-[#F5F0E8]/[0.76] [animation-delay:220ms]">
             {heroSubtitle}
           </p>
 
-          <div className="fade-in-up mt-10 flex flex-col sm:flex-row flex-wrap gap-4 [animation-delay:320ms]">
-            <Link
-              href={latestMagazine ? `/magazine/${latestMagazine.slug}` : "/magazine"}
+          <div className="fade-in-up mt-8 flex flex-col sm:flex-row flex-wrap gap-3.5 [animation-delay:320ms]">
+            <a
+              href="#issues-section"
               className="btn-gold-glow inline-flex items-center justify-center gap-3 bg-[#C9A84C] px-6 py-3.5 font-body text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#0A0A0A] transition-all duration-300 hover:bg-[#E8C97A]"
             >
               <BookOpen size={16} />
               Dernier numero
-            </Link>
+            </a>
             <Link
               href="/abonnement"
               className="inline-flex items-center justify-center gap-3 border border-[#C9A84C]/55 bg-black/10 px-6 py-3.5 font-body text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#F5F0E8] transition-all duration-300 hover:border-[#C9A84C] hover:bg-[#C9A84C]/10 hover:text-[#C9A84C]"

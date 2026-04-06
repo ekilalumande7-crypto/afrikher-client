@@ -175,7 +175,7 @@ export default function MagazinePage() {
   const heroSubtitle = siteConfig.magazine_hero_subtitle || "Portraits, interviews exclusives et analyses pour celles qui batissent l'Afrique de demain.";
 
   return (
-    <main className="min-h-screen bg-[#F5F0E8]">
+    <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-[#F5F0E8]">
       <MagazineHeader isAuthenticated={Boolean(user)} />
       <MagazineHero
         loading={loading}
@@ -186,8 +186,12 @@ export default function MagazinePage() {
       />
       <MagazineIssuesSection magazines={allMagazines} />
       <MagazineBlogSection blogPosts={blogPosts} />
-      <MagazinePremiumCTA />
-      <Footer />
+      <section className="snap-start min-h-screen bg-[#0A0A0A] flex flex-col">
+        <div className="flex-1 flex items-center">
+          <MagazinePremiumCTA compact />
+        </div>
+        <Footer compact />
+      </section>
     </main>
   );
 }
