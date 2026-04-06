@@ -8,23 +8,23 @@ import Footer from "@/components/layout/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0A0A0A] snap-y snap-mandatory overflow-y-auto h-screen">
+    <main className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
       <Navbar />
-      <div className="snap-start">
+      <section className="snap-start">
         <HeroSection />
-      </div>
-      <div className="snap-start">
+      </section>
+      <section className="snap-start">
         <AboutSection />
-      </div>
-      <div className="snap-start">
+      </section>
+      <section className="snap-start">
         <FeaturedArticles />
-      </div>
-      <div className="snap-start">
+      </section>
+      <section className="snap-start">
         <BoutiquePreview />
-      </div>
-      <div className="snap-start">
+      </section>
+      <section className="snap-start">
         <Newsletter />
-      </div>
+      </section>
       <div className="snap-start">
         <Footer />
       </div>

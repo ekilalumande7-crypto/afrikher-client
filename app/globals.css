@@ -92,33 +92,6 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
 
-/* Smooth scroll + snap */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Scroll snap on homepage */
-.snap-y {
-  scroll-snap-type: y mandatory;
-}
-.snap-start {
-  scroll-snap-align: start;
-}
-
-/* Global container */
-.container-editorial {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
-@media (min-width: 768px) {
-  .container-editorial {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
-}
-
 /* Hide scrollbar for clean look */
 ::-webkit-scrollbar {
   width: 6px;

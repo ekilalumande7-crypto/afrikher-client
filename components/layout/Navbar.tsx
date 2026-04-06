@@ -13,9 +13,19 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    // Scroll happens on <main> (snap container), not window
+    const handleScroll = () => {
+      const main = document.querySelector("main");
+      const scrollTop = main ? main.scrollTop : window.scrollY;
+      setIsScrolled(scrollTop > 20);
+    };
+    const main = document.querySelector("main");
+    if (main) main.addEventListener("scroll", handleScroll);
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      if (main) main.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   // Staggered animation for menu items
