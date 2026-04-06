@@ -47,9 +47,9 @@ export default function HeroSection() {
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-[#0A0A0A]">
-      {/* Background Image — grayscale, high contrast */}
+      {/* Layer 1: Background Image — z-0 */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center grayscale contrast-[1.1] scale-105"
+        className="absolute inset-0 z-0 w-full h-full bg-cover bg-center grayscale contrast-[1.1] scale-105"
         style={{
           backgroundImage: `url(${heroImage})`,
           transition: "transform 8s ease-out",
@@ -57,94 +57,104 @@ export default function HeroSection() {
         }}
       />
 
-      {/* Dark overlay — stronger on left/center-left for text readability */}
+      {/* Layer 2: Dark overlay — z-[1], stronger left/center-left */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-[1]"
         style={{
-          background: "linear-gradient(100deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.80) 30%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.30) 75%, rgba(0,0,0,0.15) 100%)"
+          background: "linear-gradient(100deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.82) 30%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.30) 75%, rgba(0,0,0,0.15) 100%)"
         }}
       />
 
-      {/* Subtle gold accent line — left edge */}
-      <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#C9A84C]/20 to-transparent" />
+      {/* Subtle gold accent line — left edge, z-[2] */}
+      <div className="absolute top-0 left-0 w-[1px] h-full z-[2] bg-gradient-to-b from-transparent via-[#C9A84C]/20 to-transparent" />
 
-      {/* Content — Bottom Left, controlled width */}
-      <div className="absolute bottom-[12vh] md:bottom-[15vh] left-[6%] md:left-[10%] max-w-[560px] z-10">
-        {/* Overline */}
+      {/* Layer 3: Content — z-[10], ABOVE image and overlay
+          Single column container with consistent left alignment */}
+      <div
+        className="absolute inset-0 z-[10] flex items-end"
+        style={{ pointerEvents: "none" }}
+      >
         <div
-          className={`mb-8 transition-all duration-1000 ease-out ${
-            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-          style={{ transitionDelay: "0.3s" }}
+          className="w-full px-6 md:px-[10%] pb-[10vh] md:pb-[12vh]"
+          style={{ pointerEvents: "auto" }}
         >
-          <span className="text-[0.6rem] text-[#C9A84C]/60 tracking-[0.4em] uppercase font-body font-medium">
-            Magazine éditorial premium
-          </span>
-        </div>
+          {/* All elements share the same left edge — single column axis */}
+          <div className="max-w-[480px]">
+            {/* Overline */}
+            <div
+              className={`mb-4 transition-all duration-1000 ease-out ${
+                loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+              }`}
+              style={{ transitionDelay: "0.3s" }}
+            >
+              <span className="text-[0.55rem] text-[#C9A84C]/60 tracking-[0.35em] uppercase font-body font-medium">
+                Magazine éditorial premium
+              </span>
+            </div>
 
-        {/* Brand Name — reduced size, tighter spacing, max-width constrained */}
-        <h1
-          className={`hero-title text-[10vw] md:text-[6rem] uppercase leading-none mb-6 gold-shimmer transition-all duration-1000 ease-out ${
-            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-          style={{ transitionDelay: "0.5s", maxWidth: "520px" }}
-        >
-          {siteName}
-        </h1>
+            {/* Brand Name — contained, net, above everything */}
+            <h1
+              className={`hero-title text-[8.5vw] md:text-[5rem] uppercase leading-[0.95] mb-4 gold-shimmer transition-all duration-1000 ease-out ${
+                loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+              style={{ transitionDelay: "0.5s" }}
+            >
+              {siteName}
+            </h1>
 
-        {/* Tagline — one strong phrase */}
-        <h2
-          className={`font-display font-light text-[1.3rem] md:text-[2rem] text-[#F5F0E8] leading-[1.2] mb-8 transition-all duration-1000 ease-out ${
-            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-          style={{ transitionDelay: "0.7s" }}
-        >
-          {heroTitle}
-        </h2>
+            {/* Tagline */}
+            <h2
+              className={`font-display font-light text-[1.2rem] md:text-[1.8rem] text-[#F5F0E8] leading-[1.2] mb-4 transition-all duration-1000 ease-out ${
+                loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+              style={{ transitionDelay: "0.7s" }}
+            >
+              {heroTitle}
+            </h2>
 
-        {/* Description — short, emotional */}
-        <p
-          className={`font-body text-[0.85rem] font-light text-[#F5F0E8]/50 max-w-[420px] leading-[1.9] tracking-wide transition-all duration-1000 ease-out ${
-            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-          style={{ transitionDelay: "0.9s" }}
-        >
-          {siteDescription}
-        </p>
+            {/* Description */}
+            <p
+              className={`font-body text-[0.82rem] font-light text-[#F5F0E8]/50 max-w-[400px] leading-[1.8] tracking-wide mb-8 transition-all duration-1000 ease-out ${
+                loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+              style={{ transitionDelay: "0.9s" }}
+            >
+              {siteDescription}
+            </p>
 
-        {/* CTAs — taller, aligned, smoother hover */}
-        <div
-          className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-5 mt-14 transition-all duration-1000 ease-out ${
-            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-          style={{ transitionDelay: "1.1s" }}
-        >
-          {/* CTA Primary — Gold filled, taller */}
-          <Link
-            href={heroCta1Link}
-            className="bg-[#C9A84C] text-[#0A0A0A] px-10 py-[18px] font-body font-semibold text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] hover:shadow-[0_0_30px_rgba(201,168,76,0.25)] transition-all duration-500 ease-out text-center"
-          >
-            {heroCta1Text}
-          </Link>
-          {/* CTA Secondary — Outline gold, taller */}
-          <Link
-            href={heroCta2Link}
-            className="border border-[#C9A84C]/40 text-[#C9A84C] px-10 py-[18px] font-body font-semibold text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C] transition-all duration-500 ease-out text-center"
-          >
-            {heroCta2Text}
-          </Link>
+            {/* CTAs */}
+            <div
+              className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-4 transition-all duration-1000 ease-out ${
+                loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+              style={{ transitionDelay: "1.1s" }}
+            >
+              <Link
+                href={heroCta1Link}
+                className="bg-[#C9A84C] text-[#0A0A0A] px-9 py-[16px] font-body font-semibold text-[0.65rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] hover:shadow-[0_0_30px_rgba(201,168,76,0.25)] transition-all duration-500 ease-out text-center"
+              >
+                {heroCta1Text}
+              </Link>
+              <Link
+                href={heroCta2Link}
+                className="border border-[#C9A84C]/40 text-[#C9A84C] px-9 py-[16px] font-body font-semibold text-[0.65rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C] transition-all duration-500 ease-out text-center"
+              >
+                {heroCta2Text}
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Scroll indicator */}
+      {/* Scroll indicator — z-[10] */}
       <div
-        className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 transition-all duration-1000 ${
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-[10] transition-all duration-1000 ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
         style={{ transitionDelay: "1.5s" }}
       >
-        <span className="text-[0.5rem] text-[#F5F0E8]/30 tracking-[0.3em] uppercase font-body">Découvrir</span>
-        <div className="w-[1px] h-8 bg-gradient-to-b from-[#C9A84C]/40 to-transparent animate-pulse" />
+        <span className="text-[0.5rem] text-[#F5F0E8]/25 tracking-[0.3em] uppercase font-body">Découvrir</span>
+        <div className="w-[1px] h-6 bg-gradient-to-b from-[#C9A84C]/30 to-transparent animate-pulse" />
       </div>
     </section>
   );

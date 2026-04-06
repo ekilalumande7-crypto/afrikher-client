@@ -60,17 +60,17 @@ export default function Navbar() {
       {/* ========== HEADER BAR — Logo with MAGAZINE badge + Menu ========== */}
       <header
         className={cn(
-          "fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 md:px-12",
+          "fixed top-0 left-0 right-0 z-[100] transition-all duration-500 px-6 md:px-[10%]",
           isScrolled ? "bg-black/60 backdrop-blur-md py-4 border-b border-white/5" : "bg-transparent py-8"
         )}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo with gold MAGAZINE badge */}
-          <Link href="/" className="group flex items-center gap-3">
-            <span className="text-[1.4rem] md:text-[1.6rem] font-display font-light tracking-[0.25em] text-[#F5F0E8] uppercase leading-none transition-colors duration-300 group-hover:text-[#C9A84C]">
+        <div className="flex items-center justify-between">
+          {/* Logo with gold MAGAZINE badge — tightly integrated */}
+          <Link href="/" className="group flex items-center gap-2">
+            <span className="text-[1.3rem] md:text-[1.5rem] font-display font-light tracking-[0.2em] text-[#F5F0E8] uppercase leading-none transition-colors duration-300 group-hover:text-[#C9A84C]">
               AFRIKHER
             </span>
-            <span className="text-[0.45rem] font-body font-semibold tracking-[0.2em] uppercase text-[#C9A84C] border border-[#C9A84C]/40 px-2 py-[3px] leading-none transition-all duration-300 group-hover:bg-[#C9A84C]/10 group-hover:border-[#C9A84C]/60">
+            <span className="text-[0.4rem] font-body font-semibold tracking-[0.15em] uppercase text-[#C9A84C]/80 border border-[#C9A84C]/30 px-[6px] py-[2px] leading-none transition-all duration-300 group-hover:bg-[#C9A84C]/10 group-hover:border-[#C9A84C]/50 self-center">
               Magazine
             </span>
           </Link>
