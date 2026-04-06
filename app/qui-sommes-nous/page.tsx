@@ -1,90 +1,61 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { Quote, Play } from "lucide-react";
+import AboutHero from "@/components/about/AboutHero";
+import AboutFounder from "@/components/about/AboutFounder";
+import AboutValues from "@/components/about/AboutValues";
+import AboutMedia from "@/components/about/AboutMedia";
+import { AboutPhoto, AboutSectionConfig, AboutValue, AboutVideo } from "@/components/about/types";
 
-// ══════════════════════════════════════════════
-// TYPES
-// ══════════════════════════════════════════════
-
-interface Valeur {
-  id: string;
-  icone: string;
-  titre: string;
-  description: string;
-}
-
-interface GalleryPhoto {
-  id: string;
-  url: string;
-  legende: string;
-}
-
-interface VideoItem {
-  id: string;
-  titre: string;
-  url: string;
-  description: string;
-}
-
-// ── YouTube ID extractor ──
-function extractYouTubeId(url: string): string {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : '';
-}
-
-// ── Icon mapping ──
-const ICON_MAP: Record<string, string> = {
-  'star': '✦',
-  'heart': '♥',
-  'target': '◎',
-  'users': '❖',
-  'award': '✧',
-  'crown': '♛',
-  'gem': '◆',
-  'feather': '❧',
+const DEFAULT_CONFIG: AboutSectionConfig = {
+  heroLabel: "Maison éditoriale",
+  heroTitle: "Qui sommes-nous",
+  heroSubtitle: "L’histoire d’AFRIKHER, entre élégance, influence et vision.",
+  heroText:
+    "AFRIKHER est une plateforme d’inspiration, de visibilité et d’influence dédiée aux femmes entrepreneures africaines et de la diaspora.",
+  heroMission:
+    "Notre mission est de raconter avec exigence les trajectoires qui façonnent l’Afrique de demain, dans un langage premium, éditorial et profondément humain.",
+  heroQuote: "L’élégance hors du commun. Le Business au féminin.",
+  heroImage: "",
+  founderLabel: "Portrait",
+  founderSectionTitle: "La Fondatrice",
+  founderName: "Hadassa Hélène EKILA-LUMANDE",
+  founderRole: "Fondatrice & CEO",
+  founderBioShort:
+    "Entrepreneure engagée, portée par la volonté de valoriser la puissance et l’expertise des femmes africaines.",
+  founderBioLong:
+    "AFRIKHER est né de la conviction qu’un récit africain ambitieux mérite une écriture exigeante, élégante et durable.",
+  founderQuote:
+    "Je crois en une Afrique où chaque femme entrepreneure peut écrire sa propre histoire de réussite.",
+  founderImage: "",
+  valuesLabel: "Nos valeurs",
+  valuesTitle: "Ce qui nous guide",
+  valuesIntro:
+    "Une vision éditoriale claire, pensée pour construire une plateforme à la fois exigeante, sensible et durable.",
+  mediaLabel: "Regards & archives",
+  mediaTitle: "L’univers AFRIKHER",
+  mediaIntro:
+    "Images, vidéos et fragments de vie qui prolongent la voix éditoriale d’AFRIKHER au-delà des mots.",
+  closingText:
+    "Chaque écran de cette page prolonge une même intention : raconter une présence, une ligne éditoriale et une ambition féminine sans compromis.",
+  closingCtaLabel: "Découvrir le magazine",
+  closingCtaLink: "/magazine",
 };
 
-// ══════════════════════════════════════════════
-// COMPONENT
-// ══════════════════════════════════════════════
+function extractYouTubeId(url: string): string {
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+  );
+  return match ? match[1] : "";
+}
 
 export default function QuiSommesNousPage() {
   const [loading, setLoading] = useState(true);
-
-  // Présentation
-  const [aboutTitre, setAboutTitre] = useState("Qui sommes-nous");
-  const [aboutSousTitre, setAboutSousTitre] = useState("L'histoire d'AFRIKHER");
-  const [aboutTexte, setAboutTexte] = useState("");
-  const [aboutTexte2, setAboutTexte2] = useState("");
-  const [aboutImage, setAboutImage] = useState("");
-  const [aboutCitation, setAboutCitation] = useState("");
-
-  // Fondatrice
-  const [fondNom, setFondNom] = useState("Hadassa Hélène EKILA-LUMANDE");
-  const [fondTitre, setFondTitre] = useState("Fondatrice & CEO");
-  const [fondBio, setFondBio] = useState("");
-  const [fondBio2, setFondBio2] = useState("");
-  const [fondPhoto, setFondPhoto] = useState("");
-  const [fondCitation, setFondCitation] = useState("");
-
-  // Valeurs
-  const [valeurs, setValeurs] = useState<Valeur[]>([]);
-
-  // Gallery
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
-
-  // Videos
-  const [videos, setVideos] = useState<VideoItem[]>([]);
-
-  // Lightbox
-  const [lightboxPhoto, setLightboxPhoto] = useState<GalleryPhoto | null>(null);
-
-  // ══════════════════════════════════════════════
-  // FETCH DATA FROM SUPABASE
-  // ══════════════════════════════════════════════
+  const [config, setConfig] = useState<AboutSectionConfig>(DEFAULT_CONFIG);
+  const [values, setValues] = useState<AboutValue[]>([]);
+  const [photos, setPhotos] = useState<AboutPhoto[]>([]);
+  const [videos, setVideos] = useState<AboutVideo[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -95,397 +66,136 @@ export default function QuiSommesNousPage() {
         if (!supabaseUrl || !supabaseKey) throw new Error("No Supabase config");
 
         const supabase = createClient(supabaseUrl, supabaseKey);
-
         const { data } = await supabase
           .from("site_config")
           .select("key, value")
           .like("key", "about_%");
 
-        const config: Record<string, string> = {};
+        const siteConfig: Record<string, string> = {};
         (data || []).forEach((row: { key: string; value: string }) => {
-          config[row.key] = row.value || '';
+          siteConfig[row.key] = row.value || "";
         });
 
-        // Présentation
-        if (config['about_titre']) setAboutTitre(config['about_titre']);
-        if (config['about_sous_titre']) setAboutSousTitre(config['about_sous_titre']);
-        if (config['about_texte']) setAboutTexte(config['about_texte']);
-        if (config['about_texte2']) setAboutTexte2(config['about_texte2']);
-        if (config['about_image']) setAboutImage(config['about_image']);
-        if (config['about_citation']) setAboutCitation(config['about_citation']);
+        setConfig({
+          heroLabel: siteConfig.about_hero_label || siteConfig.about_sous_titre || DEFAULT_CONFIG.heroLabel,
+          heroTitle: siteConfig.about_hero_title || siteConfig.about_titre || DEFAULT_CONFIG.heroTitle,
+          heroSubtitle: siteConfig.about_hero_subtitle || DEFAULT_CONFIG.heroSubtitle,
+          heroText: siteConfig.about_hero_text || siteConfig.about_texte || DEFAULT_CONFIG.heroText,
+          heroMission: siteConfig.about_hero_mission || siteConfig.about_texte2 || DEFAULT_CONFIG.heroMission,
+          heroQuote: siteConfig.about_hero_quote || siteConfig.about_citation || DEFAULT_CONFIG.heroQuote,
+          heroImage: siteConfig.about_hero_image || siteConfig.about_image || DEFAULT_CONFIG.heroImage,
+          founderLabel: siteConfig.about_founder_label || DEFAULT_CONFIG.founderLabel,
+          founderSectionTitle: siteConfig.about_founder_title || DEFAULT_CONFIG.founderSectionTitle,
+          founderName: siteConfig.about_founder_name || siteConfig.about_fond_nom || DEFAULT_CONFIG.founderName,
+          founderRole: siteConfig.about_founder_role || siteConfig.about_fond_titre || DEFAULT_CONFIG.founderRole,
+          founderBioShort:
+            siteConfig.about_founder_bio_short || siteConfig.about_fond_bio || DEFAULT_CONFIG.founderBioShort,
+          founderBioLong:
+            siteConfig.about_founder_bio_long || siteConfig.about_fond_bio2 || DEFAULT_CONFIG.founderBioLong,
+          founderQuote:
+            siteConfig.about_founder_quote || siteConfig.about_fond_citation || DEFAULT_CONFIG.founderQuote,
+          founderImage:
+            siteConfig.about_founder_image || siteConfig.about_fond_photo || DEFAULT_CONFIG.founderImage,
+          valuesLabel: siteConfig.about_values_label || DEFAULT_CONFIG.valuesLabel,
+          valuesTitle: siteConfig.about_values_title || DEFAULT_CONFIG.valuesTitle,
+          valuesIntro: siteConfig.about_values_intro || DEFAULT_CONFIG.valuesIntro,
+          mediaLabel: siteConfig.about_media_label || DEFAULT_CONFIG.mediaLabel,
+          mediaTitle: siteConfig.about_media_title || DEFAULT_CONFIG.mediaTitle,
+          mediaIntro: siteConfig.about_media_intro || DEFAULT_CONFIG.mediaIntro,
+          closingText: siteConfig.about_closing_text || DEFAULT_CONFIG.closingText,
+          closingCtaLabel: siteConfig.about_closing_cta_label || DEFAULT_CONFIG.closingCtaLabel,
+          closingCtaLink: siteConfig.about_closing_cta_link || DEFAULT_CONFIG.closingCtaLink,
+        });
 
-        // Fondatrice
-        if (config['about_fond_nom']) setFondNom(config['about_fond_nom']);
-        if (config['about_fond_titre']) setFondTitre(config['about_fond_titre']);
-        if (config['about_fond_bio']) setFondBio(config['about_fond_bio']);
-        if (config['about_fond_bio2']) setFondBio2(config['about_fond_bio2']);
-        if (config['about_fond_photo']) setFondPhoto(config['about_fond_photo']);
-        if (config['about_fond_citation']) setFondCitation(config['about_fond_citation']);
-
-        // Valeurs
         try {
-          const parsed = config['about_valeurs'] ? JSON.parse(config['about_valeurs']) : null;
-          if (parsed && Array.isArray(parsed) && parsed.length > 0) setValeurs(parsed);
-        } catch { /* keep empty */ }
+          const parsedValues = siteConfig.about_valeurs ? JSON.parse(siteConfig.about_valeurs) : [];
+          if (Array.isArray(parsedValues)) {
+            setValues(
+              parsedValues.map((value: any, index: number) => ({
+                id: value.id || `value-${index}`,
+                icone: value.icone || "✦",
+                titre: value.titre || value.title || "Valeur AFRIKHER",
+                description: value.description || "",
+              }))
+            );
+          }
+        } catch {
+          setValues([]);
+        }
 
-        // Gallery
         try {
-          const parsedPhotos = config['about_galerie'] ? JSON.parse(config['about_galerie']) : [];
-          if (Array.isArray(parsedPhotos)) setPhotos(parsedPhotos);
-        } catch { /* keep empty */ }
+          const parsedPhotos = siteConfig.about_galerie ? JSON.parse(siteConfig.about_galerie) : [];
+          if (Array.isArray(parsedPhotos)) {
+            setPhotos(
+              parsedPhotos
+                .filter((item) => item && typeof item === "object" && item.url)
+                .map((item: any, index: number) => ({
+                  id: item.id || `photo-${index}`,
+                  url: item.url,
+                  legende: item.legende || item.caption || "",
+                }))
+            );
+          }
+        } catch {
+          setPhotos([]);
+        }
 
-        // Videos
         try {
-          const parsedVideos = config['about_videos'] ? JSON.parse(config['about_videos']) : [];
-          if (Array.isArray(parsedVideos)) setVideos(parsedVideos);
-        } catch { /* keep empty */ }
-
-      } catch (err) {
-        console.error("Error fetching about data:", err);
+          const parsedVideos = siteConfig.about_videos ? JSON.parse(siteConfig.about_videos) : [];
+          if (Array.isArray(parsedVideos)) {
+            setVideos(
+              parsedVideos
+                .filter((item) => item && typeof item === "object" && item.url)
+                .map((item: any, index: number) => ({
+                  id: item.id || `video-${index}`,
+                  titre: item.titre || item.title || "Vidéo AFRIKHER",
+                  url: item.url,
+                  description: item.description || "",
+                  thumbnail:
+                    item.thumbnail ||
+                    item.image ||
+                    (extractYouTubeId(item.url)
+                      ? `https://img.youtube.com/vi/${extractYouTubeId(item.url)}/hqdefault.jpg`
+                      : ""),
+                  ordre: Number.isFinite(item.ordre) ? item.ordre : index,
+                }))
+                .sort((a, b) => (a.ordre || 0) - (b.ordre || 0))
+            );
+          }
+        } catch {
+          setVideos([]);
+        }
+      } catch (error) {
+        console.error("Error fetching about data:", error);
       } finally {
         setLoading(false);
       }
     }
+
     fetchData();
   }, []);
-
-  // ══════════════════════════════════════════════
-  // LOADING STATE
-  // ══════════════════════════════════════════════
 
   if (loading) {
     return (
       <main className="min-h-screen bg-[#F5F0E8]">
-        <div className="fixed top-0 left-0 right-0 h-20 bg-[#0A0A0A] z-[90]" />
+        <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
         <Navbar />
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="w-10 h-10 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin" />
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#C9A84C] border-t-transparent" />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F0E8] text-[#0A0A0A]">
-      {/* Bandeau noir derrière le header pour visibilité sur fond crème */}
-      <div className="fixed top-0 left-0 right-0 h-20 bg-[#0A0A0A] z-[90]" />
+    <main className="h-screen snap-y snap-mandatory overflow-y-auto scroll-smooth bg-[#F5F0E8] text-[#0A0A0A]">
+      <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      {/* ══════════════════════════════════════════════ */}
-      {/* HERO — PRÉSENTATION */}
-      {/* ══════════════════════════════════════════════ */}
-      <section className="pt-36 pb-20 md:pb-28 bg-[#F5F0E8]">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          {/* Surtitre doré */}
-          <p className="font-display italic text-[#C9A84C] text-lg md:text-xl mb-4 tracking-wide">
-            {aboutSousTitre}
-          </p>
-
-          {/* Titre principal */}
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-[#0A0A0A] mb-3 leading-[0.95]">
-            {aboutTitre}<span className="text-[#C9A84C]">.</span>
-          </h1>
-
-          {/* Ligne décorative */}
-          <div className="w-16 h-[1px] bg-[#C9A84C] mx-auto mb-16 md:mb-20" />
-
-          {/* Layout: image — texte */}
-          <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16 max-w-5xl mx-auto text-left">
-            {/* Image */}
-            {aboutImage && (
-              <div className="md:w-[42%] shrink-0">
-                <div className="aspect-[3/4] rounded-sm overflow-hidden shadow-2xl">
-                  <img
-                    src={aboutImage}
-                    alt="AFRIKHER"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Textes */}
-            <div className="flex-1 space-y-6">
-              {aboutTexte && (
-                <p className="font-body text-base md:text-lg text-[#2A2A2A] leading-relaxed">
-                  {aboutTexte}
-                </p>
-              )}
-              {aboutTexte2 && (
-                <p className="font-body text-sm md:text-base text-[#2A2A2A]/80 leading-relaxed">
-                  {aboutTexte2}
-                </p>
-              )}
-
-              {/* Citation */}
-              {aboutCitation && (
-                <div className="relative pl-6 border-l-2 border-[#C9A84C]/40 mt-8">
-                  <p className="font-display italic text-base md:text-lg text-[#0A0A0A]/70 leading-relaxed">
-                    &ldquo;{aboutCitation}&rdquo;
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Séparateur élégant */}
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="h-[1px] bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent" />
-      </div>
-
-      {/* ══════════════════════════════════════════════ */}
-      {/* FONDATRICE */}
-      {/* ══════════════════════════════════════════════ */}
-      {(fondNom || fondBio) && (
-        <section className="py-20 md:py-28 bg-[#0A0A0A]">
-          <div className="max-w-5xl mx-auto px-6">
-            {/* Section header */}
-            <div className="text-center mb-14">
-              <p className="font-body text-xs tracking-[0.35em] uppercase text-[#C9A84C] mb-3">
-                Portrait
-              </p>
-              <h2 className="font-display text-4xl md:text-5xl text-[#F5F0E8] mb-4">
-                La Fondatrice
-              </h2>
-              <div className="w-12 h-[1px] bg-[#C9A84C] mx-auto" />
-            </div>
-
-            <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
-              {/* Photo ronde */}
-              {fondPhoto && (
-                <div className="shrink-0">
-                  <div className="w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden border-2 border-[#C9A84C]/30 shadow-2xl shadow-[#C9A84C]/10">
-                    <img
-                      src={fondPhoto}
-                      alt={fondNom}
-                      className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Biographie */}
-              <div className="flex-1 text-center md:text-left">
-                <h3 className="font-display text-3xl md:text-4xl text-[#F5F0E8] mb-2">
-                  {fondNom}
-                </h3>
-                <p className="font-body text-xs tracking-[0.2em] uppercase text-[#C9A84C] mb-8">
-                  {fondTitre}
-                </p>
-
-                {fondBio && (
-                  <p className="font-body text-base text-[#F5F0E8]/80 leading-relaxed mb-4">
-                    {fondBio}
-                  </p>
-                )}
-                {fondBio2 && (
-                  <p className="font-body text-sm text-[#F5F0E8]/60 leading-relaxed mb-8">
-                    {fondBio2}
-                  </p>
-                )}
-
-                {/* Citation fondatrice */}
-                {fondCitation && (
-                  <div className="relative mt-6">
-                    <Quote size={28} className="text-[#C9A84C]/30 mb-3" />
-                    <p className="font-display italic text-lg md:text-xl text-[#C9A84C]/80 leading-relaxed">
-                      &ldquo;{fondCitation}&rdquo;
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════ */}
-      {/* NOS VALEURS */}
-      {/* ══════════════════════════════════════════════ */}
-      {valeurs.length > 0 && (
-        <section className="py-20 md:py-28 bg-[#F5F0E8]">
-          <div className="max-w-6xl mx-auto px-6">
-            {/* Section header */}
-            <div className="text-center mb-16">
-              <p className="font-body text-xs tracking-[0.35em] uppercase text-[#C9A84C] mb-3">
-                Ce qui nous guide
-              </p>
-              <h2 className="font-display text-4xl md:text-5xl text-[#0A0A0A] mb-4">
-                Nos Valeurs
-              </h2>
-              <div className="w-12 h-[1px] bg-[#C9A84C] mx-auto" />
-            </div>
-
-            {/* Grille de valeurs */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 ${valeurs.length >= 3 ? 'lg:grid-cols-3' : ''} ${valeurs.length >= 4 ? 'xl:grid-cols-4' : ''} gap-8 md:gap-10`}>
-              {valeurs.map((valeur) => (
-                <div
-                  key={valeur.id}
-                  className="group text-center p-8 rounded-sm border border-[#0A0A0A]/5 hover:border-[#C9A84C]/30 transition-all duration-500 hover:shadow-xl hover:shadow-[#C9A84C]/5"
-                >
-                  {/* Icône */}
-                  <div className="text-4xl mb-5 text-[#C9A84C] group-hover:scale-110 transition-transform duration-500">
-                    {ICON_MAP[valeur.icone] || '◆'}
-                  </div>
-
-                  {/* Titre */}
-                  <h3 className="font-body text-sm tracking-[0.2em] uppercase font-bold text-[#0A0A0A] mb-4">
-                    {valeur.titre}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="font-body text-sm text-[#2A2A2A]/70 leading-relaxed">
-                    {valeur.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════ */}
-      {/* GALERIE PHOTOS */}
-      {/* ══════════════════════════════════════════════ */}
-      {photos.length > 0 && (
-        <section className="py-20 bg-[#0A0A0A]">
-          <div className="max-w-7xl mx-auto px-6">
-            {/* Section header */}
-            <div className="text-center mb-14">
-              <p className="font-body text-xs tracking-[0.35em] uppercase text-[#C9A84C] mb-3">
-                En images
-              </p>
-              <h2 className="font-display text-4xl md:text-5xl text-[#F5F0E8] mb-4">
-                Galerie
-              </h2>
-              <div className="w-12 h-[1px] bg-[#C9A84C] mx-auto" />
-            </div>
-
-            {/* Masonry grid */}
-            <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="break-inside-avoid group cursor-pointer"
-                  onClick={() => setLightboxPhoto(photo)}
-                >
-                  <div className="relative overflow-hidden rounded-sm">
-                    <img
-                      src={photo.url}
-                      alt={photo.legende || 'AFRIKHER'}
-                      className="w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-[#0A0A0A]/0 group-hover:bg-[#0A0A0A]/40 transition-colors duration-500 flex items-end">
-                      {photo.legende && (
-                        <p className="p-4 font-body text-xs text-[#F5F0E8] opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
-                          {photo.legende}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Lightbox */}
-          {lightboxPhoto && (
-            <div
-              className="fixed inset-0 z-[200] bg-[#0A0A0A]/95 backdrop-blur-xl flex items-center justify-center p-6"
-              onClick={() => setLightboxPhoto(null)}
-            >
-              <button
-                className="absolute top-6 right-6 text-[#F5F0E8]/60 hover:text-[#F5F0E8] transition-colors text-3xl font-light"
-                onClick={() => setLightboxPhoto(null)}
-              >
-                &times;
-              </button>
-              <div className="max-w-4xl max-h-[85vh] relative" onClick={e => e.stopPropagation()}>
-                <img
-                  src={lightboxPhoto.url}
-                  alt={lightboxPhoto.legende || ''}
-                  className="max-w-full max-h-[80vh] object-contain rounded-sm"
-                />
-                {lightboxPhoto.legende && (
-                  <p className="text-center mt-4 font-display italic text-[#F5F0E8]/60 text-sm">
-                    {lightboxPhoto.legende}
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ══════════════════════════════════════════════ */}
-      {/* VIDÉOS */}
-      {/* ══════════════════════════════════════════════ */}
-      {videos.length > 0 && (
-        <section className="py-20 bg-[#F5F0E8]">
-          <div className="max-w-6xl mx-auto px-6">
-            {/* Section header */}
-            <div className="text-center mb-14">
-              <p className="font-body text-xs tracking-[0.35em] uppercase text-[#C9A84C] mb-3">
-                Découvrir
-              </p>
-              <h2 className="font-display text-4xl md:text-5xl text-[#0A0A0A] mb-4">
-                Vidéos
-              </h2>
-              <div className="w-12 h-[1px] bg-[#C9A84C] mx-auto" />
-            </div>
-
-            {/* Video grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {videos.map((video) => {
-                const ytId = extractYouTubeId(video.url);
-                return (
-                  <div key={video.id} className="group">
-                    {ytId ? (
-                      <div className="aspect-video rounded-sm overflow-hidden bg-[#2A2A2A] shadow-lg">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${ytId}`}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
-                    ) : video.url ? (
-                      <a
-                        href={video.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block aspect-video rounded-sm overflow-hidden bg-[#2A2A2A] relative"
-                      >
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play size={48} className="text-[#C9A84C]" />
-                        </div>
-                      </a>
-                    ) : null}
-                    {(video.titre || video.description) && (
-                      <div className="mt-4">
-                        {video.titre && (
-                          <h3 className="font-body font-semibold text-base text-[#0A0A0A] mb-1">
-                            {video.titre}
-                          </h3>
-                        )}
-                        {video.description && (
-                          <p className="font-body text-sm text-[#9A9A8A]">
-                            {video.description}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-          <Footer />
+      <AboutHero config={config} />
+      <AboutFounder config={config} />
+      <AboutValues config={config} values={values} />
+      <AboutMedia config={config} photos={photos} videos={videos} />
     </main>
   );
 }
