@@ -38,11 +38,11 @@ export default function MagazineHero({
           <img
             src={heroImage}
             alt="AFRIKHER Magazine"
-            className="absolute inset-0 h-full w-full scale-[1.01] object-cover"
+            className="absolute inset-0 h-full w-full scale-[1.01] object-cover [filter:grayscale(100%)_brightness(0.52)_contrast(1.1)]"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.34)_0%,rgba(10,10,10,0.26)_32%,rgba(10,10,10,0.52)_68%,rgba(10,10,10,0.78)_100%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.18)_0%,rgba(10,10,10,0.24)_36%,rgba(10,10,10,0.62)_74%,rgba(10,10,10,0.84)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_82%,rgba(10,10,10,0.08)_0%,rgba(10,10,10,0.52)_42%,rgba(10,10,10,0.78)_100%)]" />
+          <div className="absolute inset-0 bg-black/16" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,10,10,0.08)_0%,rgba(10,10,10,0.18)_42%,rgba(10,10,10,0.46)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.08)_0%,rgba(10,10,10,0.14)_34%,rgba(10,10,10,0.34)_68%,rgba(10,10,10,0.56)_100%)]" />
         </>
       )}
 
