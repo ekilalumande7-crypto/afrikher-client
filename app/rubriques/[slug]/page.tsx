@@ -28,9 +28,12 @@ interface RelatedArticle {
   title: string;
   slug: string;
   excerpt: string;
+  content: string;
   cover_image: string | null;
+  category_name?: string | null;
   type: string;
   published_at: string | null;
+  source: "editorial" | "blog";
 }
 
 interface TocItem {
@@ -51,6 +54,10 @@ function readTime(content: string): number {
 function typeLabel(t: string): string {
   const m: Record<string, string> = { article: "Article", interview: "Interview", portrait: "Portrait", dossier: "Dossier" };
   return m[t] || "Article";
+}
+
+function relatedLabel(article: RelatedArticle): string {
+  return article.category_name || (article.source === "blog" ? "Blog" : typeLabel(article.type));
 }
 
 function slugify(text: string): string {
@@ -223,15 +230,155 @@ export default function ArticleDetailPage() {
       const bodyHtml = hasContent ? contentText : isExcerptLong ? excerptText : "";
       setProcessed(processContent(bodyHtml));
 
-      const { data: relatedData } = await supabase
-        .from("articles")
-        .select("id, title, slug, excerpt, cover_image, type, published_at")
-        .eq("status", "published")
-        .neq("slug", slug)
-        .order("published_at", { ascending: false })
-        .limit(3);
+      const relatedItems: RelatedArticle[] = [];
+      const seen = new Set<string>();
 
-      if (relatedData) setRelated(relatedData);
+      const pushUnique = (items: RelatedArticle[]) => {
+        for (const item of items) {
+          if (item.slug === slug || seen.has(item.id)) continue;
+          seen.add(item.id);
+          relatedItems.push(item);
+          if (relatedItems.length >= 3) break;
+        }
+      };
+
+      if (source === "editorial" && art.category_id) {
+        const { data: sameCategory } = await supabase
+          .from("articles")
+          .select("id, title, slug, excerpt, content, cover_image, type, published_at, categories(name)")
+          .eq("status", "published")
+          .eq("category_id", art.category_id)
+          .neq("slug", slug)
+          .order("published_at", { ascending: false })
+          .limit(3);
+
+        if (sameCategory) {
+          pushUnique(
+            sameCategory.map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              excerpt: item.excerpt || "",
+              content: item.content || "",
+              cover_image: item.cover_image,
+              category_name: item.categories?.name || null,
+              type: item.type || "article",
+              published_at: item.published_at,
+              source: "editorial" as const,
+            }))
+          );
+        }
+      }
+
+      if (relatedItems.length < 3) {
+        if (source === "blog") {
+          const { data: recentBlog } = await supabase
+            .from("blog_posts")
+            .select("id, title, slug, excerpt, content, cover_image, published_at")
+            .eq("status", "published")
+            .neq("slug", slug)
+            .order("published_at", { ascending: false })
+            .limit(6);
+
+          if (recentBlog) {
+            pushUnique(
+              recentBlog.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                slug: item.slug,
+                excerpt: item.excerpt || "",
+                content: item.content || "",
+                cover_image: item.cover_image,
+                category_name: "Blog",
+                type: "article",
+                published_at: item.published_at,
+                source: "blog" as const,
+              }))
+            );
+          }
+        } else {
+          const { data: recentEditorial } = await supabase
+            .from("articles")
+            .select("id, title, slug, excerpt, content, cover_image, type, published_at, categories(name)")
+            .eq("status", "published")
+            .neq("slug", slug)
+            .order("published_at", { ascending: false })
+            .limit(6);
+
+          if (recentEditorial) {
+            pushUnique(
+              recentEditorial.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                slug: item.slug,
+                excerpt: item.excerpt || "",
+                content: item.content || "",
+                cover_image: item.cover_image,
+                category_name: item.categories?.name || null,
+                type: item.type || "article",
+                published_at: item.published_at,
+                source: "editorial" as const,
+              }))
+            );
+          }
+        }
+      }
+
+      if (relatedItems.length < 3) {
+        if (source === "blog") {
+          const { data: recentEditorial } = await supabase
+            .from("articles")
+            .select("id, title, slug, excerpt, content, cover_image, type, published_at, categories(name)")
+            .eq("status", "published")
+            .neq("slug", slug)
+            .order("published_at", { ascending: false })
+            .limit(6);
+
+          if (recentEditorial) {
+            pushUnique(
+              recentEditorial.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                slug: item.slug,
+                excerpt: item.excerpt || "",
+                content: item.content || "",
+                cover_image: item.cover_image,
+                category_name: item.categories?.name || null,
+                type: item.type || "article",
+                published_at: item.published_at,
+                source: "editorial" as const,
+              }))
+            );
+          }
+        } else {
+          const { data: recentBlog } = await supabase
+            .from("blog_posts")
+            .select("id, title, slug, excerpt, content, cover_image, published_at")
+            .eq("status", "published")
+            .neq("slug", slug)
+            .order("published_at", { ascending: false })
+            .limit(6);
+
+          if (recentBlog) {
+            pushUnique(
+              recentBlog.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                slug: item.slug,
+                excerpt: item.excerpt || "",
+                content: item.content || "",
+                cover_image: item.cover_image,
+                category_name: "Blog",
+                type: "article",
+                published_at: item.published_at,
+                source: "blog" as const,
+              }))
+            );
+          }
+        }
+      }
+
+      setRelated(relatedItems.slice(0, 3));
     } catch {
       setNotFound(true);
     }
@@ -573,8 +720,8 @@ export default function ArticleDetailPage() {
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 40 }}>
               {related.map((r) => (
-                <Link key={r.id} href={`/rubriques/${r.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
-                  <div style={{ cursor: "pointer" }}>
+                <Link key={r.id} href={`/rubriques/${r.slug}`} style={{ textDecoration: "none", color: "inherit", height: "100%" }}>
+                  <div style={{ cursor: "pointer", display: "flex", flexDirection: "column", height: "100%" }}>
                     <div style={{
                       aspectRatio: "4/3", overflow: "hidden", borderRadius: 4,
                       marginBottom: 20, background: "#E8E5DE",
@@ -602,29 +749,58 @@ export default function ArticleDetailPage() {
                       color: "#C9A84C",
                       marginBottom: 10,
                     }}>
-                      {typeLabel(r.type)}
+                      {relatedLabel(r)}
                     </div>
 
-                    <h3 style={{
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      fontSize: 24, fontWeight: 600, color: "#0A0A0A",
-                      lineHeight: 1.25, margin: "0 0 10px",
-                      letterSpacing: "-0.005em",
-                    }}>
-                      {r.title}
-                    </h3>
-
-                    {r.excerpt && (
-                      <p style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: 14, color: "#6B7280", lineHeight: 1.65,
-                        margin: 0,
-                        display: "-webkit-box", WebkitLineClamp: 2,
+                    <div style={{ minHeight: 90 }}>
+                      <h3 style={{
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontSize: 24, fontWeight: 600, color: "#0A0A0A",
+                        lineHeight: 1.25, margin: "0 0 10px",
+                        letterSpacing: "-0.005em",
+                        display: "-webkit-box", WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical", overflow: "hidden",
                       }}>
-                        {r.excerpt}
-                      </p>
-                    )}
+                        {r.title}
+                      </h3>
+                    </div>
+
+                    <div style={{ minHeight: 72 }}>
+                      {r.excerpt && (
+                        <p style={{
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: 14, color: "#6B7280", lineHeight: 1.65,
+                          margin: 0,
+                          display: "-webkit-box", WebkitLineClamp: 3,
+                          WebkitBoxOrient: "vertical", overflow: "hidden",
+                        }}>
+                          {r.excerpt}
+                        </p>
+                      )}
+                    </div>
+
+                    <div style={{ marginTop: "auto", paddingTop: 18 }}>
+                      <div style={{
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 10, fontWeight: 700,
+                        textTransform: "uppercase", letterSpacing: "0.16em",
+                        color: "rgba(10,10,10,0.7)",
+                        display: "inline-flex", alignItems: "center", gap: 8,
+                        marginBottom: 14,
+                      }}>
+                        Lire l&apos;article
+                        <ChevronRight size={13} />
+                      </div>
+
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+                        fontFamily: "'DM Sans', sans-serif",
+                        fontSize: 12, color: "#8D877C",
+                      }}>
+                        {r.published_at && <span>{formatDate(r.published_at)}</span>}
+                        <span>{readTime(r.content || r.excerpt || "")} min de lecture</span>
+                      </div>
+                    </div>
                   </div>
                 </Link>
               ))}
