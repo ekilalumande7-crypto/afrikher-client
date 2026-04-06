@@ -3,17 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --background: #F5E6C8;
-  --foreground: #1A1A1A;
+  --background: #0A0A0A;
+  --foreground: #F5F0E8;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C97A;
+  --color-dark: #0A0A0A;
+  --color-cream: #F5F0E8;
   --font-display: 'Cormorant Garamond', serif;
-  --font-body: 'Montserrat', sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0A0A0A;
-    --foreground: #F5F0E8;
-  }
+  --font-body: 'DM Sans', sans-serif;
 }
 
 body {
@@ -22,37 +19,59 @@ body {
   font-family: var(--font-body);
 }
 
-.gold-text-logo {
-  background: linear-gradient(135deg, #C9A84C 0%, #F5E6A3 40%, #C9A84C 70%, #8B6914 100%);
+/* Gold gradient text — static */
+.gold-text {
+  background: linear-gradient(135deg, #8A6E2F 0%, #C9A84C 30%, #F5F0E8 50%, #C9A84C 70%, #8A6E2F 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.gold-text-tagline {
-  background: linear-gradient(135deg, #C9A84C 0%, #F5E6A3 50%, #C9A84C 100%);
+/* Gold gradient text — animated shimmer (subtle) */
+.gold-shimmer {
+  background: linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%);
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: gold-shimmer 4s ease-in-out infinite;
 }
 
-.hero-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-weight: 300;
-  letter-spacing: 0.18em;
-  line-height: 0.9;
-}
-
-@keyframes gold-shine {
+@keyframes gold-shimmer {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-.animate-gold-shine {
-  animation: gold-shine 3s ease-in-out infinite;
+/* Hero title typography */
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  letter-spacing: 0.25em;
+  line-height: 0.9;
 }
 
+/* Section headings */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar for clean look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A2A2A;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C9A84C;
 }

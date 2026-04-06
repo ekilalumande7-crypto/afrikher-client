@@ -1,110 +1,107 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
-const products = [
-  {
-    id: "1",
-    name: "L'Art de l'Ambition",
-    price: "45.00",
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=1974&auto=format&fit=crop",
-    type: "Livre",
-    isNew: true
-  },
-  {
-    id: "2",
-    name: "Bouquet 'Souveraine'",
-    price: "85.00",
-    image: "https://images.unsplash.com/photo-1526047932273-341f2a7631f9?q=80&w=2080&auto=format&fit=crop",
-    type: "Fleurs",
-    isNew: false
-  },
-  {
-    id: "3",
-    name: "Agenda AFRIKHER 2026",
-    price: "35.00",
-    image: "https://images.unsplash.com/photo-1506784365847-bbad939e9335?q=80&w=2068&auto=format&fit=crop",
-    type: "Accessoire",
-    isNew: true
-  },
-  {
-    id: "4",
-    name: "Coffret 'Éclat d'Afrique'",
-    price: "120.00",
-    image: "https://images.unsplash.com/photo-1596462502278-27bfad450216?q=80&w=2080&auto=format&fit=crop",
-    type: "Beauté",
-    isNew: false
-  }
-];
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  images: string[];
+  type: string;
+}
 
 export default function BoutiquePreview() {
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id, name, price, images, type")
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(4);
+
+        if (data) setProducts(data as Product[]);
+      } catch (err) {
+        console.error("Boutique preview error:", err);
+      }
+    }
+    loadProducts();
+  }, []);
+
+  if (products.length === 0) return null;
+
   return (
-    <section className="py-32 px-6 md:px-12 bg-white text-brand-dark">
+    <section className="py-32 md:py-40 px-6 md:px-12 bg-[#F5F0E8] text-[#0A0A0A]">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
-          <div className="max-w-xl">
-            <span className="text-brand-gold font-body font-bold uppercase tracking-[0.4em] text-[10px] mb-4 block">La Boutique Exclusive</span>
-            <h2 className="text-5xl md:text-7xl font-display font-bold tracking-tighter leading-none">
-              L'Essentiel <br /> <span className="text-brand-gold italic">AFRIKHER</span>
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-20 gap-8">
+          <div>
+            <span className="text-[#C9A84C] font-body font-medium uppercase tracking-[0.4em] text-[0.6rem] mb-4 block">
+              La Boutique
+            </span>
+            <h2 className="text-4xl md:text-6xl font-display font-light leading-[0.95] tracking-tight">
+              L&apos;Essentiel{" "}
+              <span className="italic text-[#C9A84C]">AFRIKHER</span>
             </h2>
           </div>
-          <div className="flex flex-col items-start md:items-end gap-6">
-            <p className="text-brand-gray font-body text-sm md:text-right max-w-xs">
-              Une sélection exclusive d'objets et d'ouvrages pensés pour accompagner votre quotidien d'entrepreneure.
-            </p>
-            <Link
-              href="/boutique"
-              className="group flex items-center space-x-3 text-brand-dark font-bold uppercase tracking-widest text-[10px] border-b border-brand-dark pb-1"
-            >
-              <span>Voir toute la collection</span>
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
+          <Link
+            href="/boutique"
+            className="group inline-flex items-center space-x-3 text-[#0A0A0A]/60 font-body font-medium uppercase tracking-[0.2em] text-[0.6rem] hover:text-[#C9A84C] transition-colors duration-300"
+          >
+            <span>Voir la collection</span>
+            <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" />
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
-          {products.map((product, index) => (
-            <div
-              key={product.id}
-              className="group"
-            >
-              <div className="relative aspect-[3/4] overflow-hidden bg-brand-charcoal/5 mb-6 rounded-sm">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  referrerPolicy="no-referrer"
-                />
-                
-                {product.isNew && (
-                  <div className="absolute top-4 left-4 bg-brand-gold text-white text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
-                    Nouveau
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-16">
+          {products.map((product) => {
+            const imageUrl = product.images?.[0] || "";
+            return (
+              <Link
+                key={product.id}
+                href={`/boutique/${product.id}`}
+                className="group"
+              >
+                <div className="relative aspect-[3/4] overflow-hidden bg-[#0A0A0A]/5 mb-6">
+                  {imageUrl && (
+                    <img
+                      src={imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-105"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-[#0A0A0A]/30 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
+                    <span className="text-[#F5F0E8] font-body font-medium text-[0.65rem] tracking-[0.2em] uppercase border border-[#F5F0E8]/40 px-6 py-3 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                      Voir le produit
+                    </span>
                   </div>
-                )}
+                </div>
 
-                <div className="absolute inset-0 bg-brand-dark/40 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center backdrop-blur-[2px]">
-                  <Link
-                    href={`/boutique/${product.id}`}
-                    className="bg-white text-brand-dark px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 flex items-center gap-2 hover:bg-brand-gold hover:text-white"
-                  >
-                    <ShoppingBag size={14} />
-                    Ajouter au panier
-                  </Link>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[0.55rem] uppercase tracking-[0.2em] text-[#C9A84C] font-body font-medium">
+                      {product.type}
+                    </span>
+                    <span className="text-[0.8rem] font-body font-medium text-[#0A0A0A]">
+                      {Number(product.price).toFixed(2)} €
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-display font-light group-hover:text-[#C9A84C] transition-colors duration-300 leading-tight">
+                    {product.name}
+                  </h3>
                 </div>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-brand-gold font-bold">{product.type}</span>
-                  <span className="text-xs font-body font-bold">{product.price} €</span>
-                </div>
-                <h3 className="text-xl font-display font-bold group-hover:text-brand-gold transition-colors leading-tight">
-                  {product.name}
-                </h3>
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>

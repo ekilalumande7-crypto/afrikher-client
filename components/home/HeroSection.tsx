@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
 
 interface SiteConfig {
   [key: string]: string;
@@ -11,14 +10,14 @@ interface SiteConfig {
 
 export default function HeroSection() {
   const [config, setConfig] = useState<SiteConfig>({});
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const { data, error } = await supabase
-          .from('site_config')
-          .select('key, value');
+          .from("site_config")
+          .select("key, value");
 
         if (data && !error) {
           const configMap: SiteConfig = {};
@@ -29,122 +28,125 @@ export default function HeroSection() {
         }
       } catch (err) {
         console.error("Error fetching site config:", err);
-      } finally {
-        setLoading(false);
       }
     };
     fetchConfig();
+    // Trigger fade-in after a short delay
+    const timer = setTimeout(() => setLoaded(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Values from CMS with fallbacks
+  // CMS values with fallbacks
   const heroImage = config.hero_image || "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=1974&auto=format&fit=crop";
-  const heroTitle = config.hero_title || "Le Business au féminin";
-  const heroSubtitle = config.hero_subtitle || "Portraits, interviews et analyses pour les femmes qui bâtissent l'Afrique.";
   const siteName = config.site_name || "AFRIKHER";
-  const siteTagline = config.site_tagline || "Bienvenue dans l'univers AFRIKHER";
-  const heroDescription = config.site_description || "Le magazine de référence dédié aux femmes africaines qui entreprennent, innovent et inspirent. Des portraits, des récits, une vision.";
+  const heroTitle = config.hero_title || "Le Business au féminin";
+  const siteDescription = config.site_description || "L'excellence entrepreneuriale africaine, racontée avec audace et raffinement.";
   const heroCta1Text = config.hero_cta1_text || "Découvrir le Magazine";
   const heroCta1Link = config.hero_cta1_link || "/magazine";
-  const heroCta2Text = config.hero_cta2_text || "Rejoindre la communauté";
+  const heroCta2Text = config.hero_cta2_text || "S'abonner";
   const heroCta2Link = config.hero_cta2_link || "/abonnement";
-  const contactEmail = config.contact_email || "contact@afrikher.com";
-  const siteUrl = config.site_url || "WWW.AFRIKHER.COM";
 
   return (
-    <section
-      className="relative h-screen w-full overflow-hidden bg-[#0A0A0A]"
-      style={{ backgroundColor: "#0A0A0A", color: "#F5F0E8" }}
-    >
-      {/* Background Image with Overlay */}
+    <section className="relative h-screen w-full overflow-hidden bg-[#0A0A0A]">
+      {/* Background Image — grayscale, high contrast */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-1000 grayscale contrast-[1.1]"
+        className="absolute inset-0 w-full h-full bg-cover bg-center grayscale contrast-[1.1] scale-105"
         style={{
           backgroundImage: `url(${heroImage})`,
+          transition: "transform 8s ease-out",
+          ...(loaded ? { transform: "scale(1)" } : {}),
         }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "linear-gradient(105deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.2) 70%, rgba(0,0,0,0.1) 100%)"
-          }}
-        />
-      </div>
+      />
 
-      {/* Bottom Left Content Block */}
+      {/* Dark overlay — stronger on left for text readability */}
       <div
-        className="absolute bottom-[15vh] left-[8%] md:left-[12%] max-w-[800px] flex flex-col items-start text-left z-10"
-        style={{ position: "absolute", bottom: "15vh", left: "10%", maxWidth: "800px", zIndex: 10 }}
-      >
-        <div className="mb-4">
-          <span className="text-[0.65rem] text-[#9A9A8A] tracking-[0.3em] uppercase font-body">
-            — MAGAZINE ÉDITORIAL PREMIUM
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(100deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.35) 65%, rgba(0,0,0,0.2) 100%)"
+        }}
+      />
+
+      {/* Subtle gold accent line — left edge */}
+      <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-transparent via-[#C9A84C]/20 to-transparent" />
+
+      {/* Content — Bottom Left */}
+      <div className="absolute bottom-[12vh] md:bottom-[15vh] left-[6%] md:left-[10%] max-w-[680px] z-10">
+        {/* Overline */}
+        <div
+          className={`mb-6 transition-all duration-1000 ease-out ${
+            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          }`}
+          style={{ transitionDelay: "0.3s" }}
+        >
+          <span className="text-[0.6rem] text-[#C9A84C]/60 tracking-[0.4em] uppercase font-body font-medium">
+            Magazine éditorial premium
           </span>
         </div>
+
+        {/* Brand Name */}
         <h1
-          className="hero-title text-[10vw] md:text-[7rem] uppercase leading-none mb-2 animate-gold-shine"
-          style={{
-            background: "linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%)",
-            backgroundSize: "200% 200%",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
+          className={`hero-title text-[14vw] md:text-[8rem] uppercase leading-none mb-4 gold-shimmer transition-all duration-1000 ease-out ${
+            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{ transitionDelay: "0.5s" }}
         >
           {siteName}
         </h1>
 
-        <p className="font-display italic font-light text-[1.4rem] text-[#F5F0E8] tracking-[0.05em] mb-4">
-          {siteTagline}
-        </p>
-
+        {/* Tagline — one strong phrase */}
         <h2
-          className="font-display font-normal text-[2rem] md:text-[2.8rem] leading-tight animate-gold-shine"
-          style={{
-            background: "linear-gradient(135deg, #8A6E2F 0%, #C9A84C 25%, #F5F0E8 50%, #C9A84C 75%, #8A6E2F 100%)",
-            backgroundSize: "200% 200%",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
+          className={`font-display font-light text-[1.4rem] md:text-[2.2rem] text-[#F5F0E8] leading-[1.2] mb-6 transition-all duration-1000 ease-out ${
+            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{ transitionDelay: "0.7s" }}
         >
           {heroTitle}
         </h2>
 
-        <p className="font-body text-[0.9rem] font-light text-[#F5F0E8]/70 max-w-[480px] mt-4 leading-[1.8]">
-          {heroDescription}
+        {/* Description — short, emotional */}
+        <p
+          className={`font-body text-[0.85rem] font-light text-[#F5F0E8]/50 max-w-[440px] leading-[1.9] tracking-wide transition-all duration-1000 ease-out ${
+            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{ transitionDelay: "0.9s" }}
+        >
+          {siteDescription}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-6 mt-10">
+        {/* CTAs */}
+        <div
+          className={`flex flex-col sm:flex-row gap-5 mt-12 transition-all duration-1000 ease-out ${
+            loaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{ transitionDelay: "1.1s" }}
+        >
+          {/* CTA Primary — Gold filled */}
           <Link
             href={heroCta1Link}
-            className="border border-[#C9A84C] text-[#C9A84C] px-10 py-3.5 font-body text-[0.75rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-300"
+            className="bg-[#C9A84C] text-[#0A0A0A] px-10 py-4 font-body font-medium text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#E8C97A] transition-all duration-400 text-center"
           >
             {heroCta1Text}
           </Link>
+          {/* CTA Secondary — Outline gold */}
           <Link
             href={heroCta2Link}
-            className="border border-[#C9A84C]/60 text-[#C9A84C]/80 px-10 py-3.5 font-body text-[0.75rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-all duration-300"
+            className="border border-[#C9A84C]/40 text-[#C9A84C] px-10 py-4 font-body font-medium text-[0.7rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C] hover:text-[#0A0A0A] hover:border-[#C9A84C] transition-all duration-400 text-center"
           >
             {heroCta2Text}
           </Link>
         </div>
       </div>
 
-      {/* Minimal Footer */}
-      <footer className="absolute bottom-0 left-0 w-full px-10 py-6 flex flex-col items-center justify-center gap-4 z-10">
-        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center">
-          <span className="text-[0.6rem] text-[#F5F0E8]/60 tracking-[0.15em] uppercase">
-            © 2026 {siteName} — TOUS DROITS RÉSERVÉS
-          </span>
-          <span className="hidden md:inline text-[0.6rem] text-[#F5F0E8]/40 tracking-[0.15em]">|</span>
-          <span className="text-[0.6rem] text-[#F5F0E8]/60 tracking-[0.15em] uppercase">
-            DESIGNED BY TECHNOVOLUT INNOVATION FIDEPAY
-          </span>
-        </div>
-        <div className="text-[0.6rem] text-[#F5F0E8]/60 tracking-[0.2em] uppercase text-center">
-          {siteUrl}
-        </div>
-      </footer>
+      {/* Scroll indicator */}
+      <div
+        className={`absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10 transition-all duration-1000 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
+        style={{ transitionDelay: "1.5s" }}
+      >
+        <span className="text-[0.5rem] text-[#F5F0E8]/30 tracking-[0.3em] uppercase font-body">Découvrir</span>
+        <div className="w-[1px] h-8 bg-gradient-to-b from-[#C9A84C]/40 to-transparent animate-pulse" />
+      </div>
     </section>
   );
 }

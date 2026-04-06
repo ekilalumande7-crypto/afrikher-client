@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Montserrat } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -8,10 +8,10 @@ const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
 });
 
-const montserrat = Montserrat({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-montserrat",
+  variable: "--font-dm-sans",
 });
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${cormorant.variable} ${montserrat.variable}`}>
+    <html lang="fr" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="antialiased" suppressHydrationWarning style={{ backgroundColor: "#0A0A0A", margin: 0, padding: 0 }}>
         {children}
       </body>
