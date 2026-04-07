@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
-import { createPayment } from '@/lib/fidepay';
+import {
+  createPayment,
+  createPendingTransaction,
+  generateTransactionId,
+  syncTransactionId,
+} from '@/lib/fidepay';
 import { requireAuth } from '@/lib/auth-helpers';
 
 export async function POST(request: Request) {
@@ -105,9 +110,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create FidePay payment
+    // Create transaction record before calling FIDEPAY
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://afrikher.com';
-    const transactionId = `SUB_${subscription.id}_${plan}`;
+    const transactionId = generateTransactionId();
+
+    await createPendingTransaction({
+      transactionId,
+      userId,
+      type: 'subscription',
+      itemId: subscription.id,
+      amount,
+    });
 
     try {
       const payment = await createPayment({
@@ -120,17 +133,23 @@ export async function POST(request: Request) {
         cancel_url: `${siteUrl}/abonnement`,
       });
 
+      const fidepayTransactionId = payment.transaction_id || transactionId;
+      await syncTransactionId(transactionId, fidepayTransactionId);
+
       await supabase
         .from('subscriptions')
         .update({
-          fidepay_sub_id: payment.transaction_id,
+          fidepay_sub_id: fidepayTransactionId,
         })
         .eq('id', subscription.id);
+
+      const paymentUrl = payment.checkout_url || payment.payment_url || null;
 
       return NextResponse.json({
         success: true,
         subscription,
-        checkout_url: payment.checkout_url || payment.payment_url,
+        paymentUrl,
+        checkout_url: paymentUrl,
       });
     } catch (fidepayError) {
       console.error('FidePay error:', fidepayError);

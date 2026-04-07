@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Check, CreditCard, Sparkles } from "lucide-react";
 import AccountCard from "@/components/account/AccountCard";
@@ -31,6 +30,8 @@ interface PlanInfo {
 export default function AbonnementPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subscribingPlan, setSubscribingPlan] = useState<"monthly" | "annual" | null>(null);
+  const [error, setError] = useState("");
   const [monthlyPlan, setMonthlyPlan] = useState<PlanInfo>({
     price: "",
     period: "mois",
@@ -112,6 +113,61 @@ export default function AbonnementPage() {
     };
     fetchData();
   }, []);
+
+  async function getFreshAccessToken() {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    const refreshedToken = refreshed?.session?.access_token;
+    if (refreshedToken) return refreshedToken;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return session?.access_token || null;
+  }
+
+  async function handleSubscribe(plan: "monthly" | "annual") {
+    setError("");
+    setSubscribingPlan(plan);
+
+    try {
+      const token = await getFreshAccessToken();
+
+      if (!token) {
+        window.location.href = `/auth/login?redirect=${encodeURIComponent("/dashboard/abonnement")}`;
+        return;
+      }
+
+      const response = await fetch("/api/fidepay/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Impossible de lancer le paiement.");
+      }
+
+      const paymentUrl =
+        data.paymentUrl || data.checkout_url || data.checkoutUrl || data.payment_url;
+
+      if (!paymentUrl) {
+        throw new Error("Aucune URL de paiement n'a été retournée.");
+      }
+
+      window.location.href = paymentUrl;
+    } catch (err: any) {
+      console.error("[Dashboard Abonnement] payment error:", err);
+      setError(err.message || "Une erreur est survenue. Veuillez réessayer.");
+    } finally {
+      setSubscribingPlan(null);
+    }
+  }
 
   if (loading) {
     return <AccountLoadingBlock />;
@@ -243,17 +299,28 @@ export default function AbonnementPage() {
                     </p>
                   </div>
                 )}
+                {error ? (
+                  <p className="mt-6 border border-[#7C2D2D]/20 bg-[#2A1414] px-4 py-3 font-body text-sm text-[#F0C7C7]">
+                    {error}
+                  </p>
+                ) : null}
 
-                <Link
-                  href="/abonnement"
-                  className={`mt-6 inline-flex items-center justify-center px-6 py-3 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] transition-colors ${
+                <button
+                  type="button"
+                  onClick={() => handleSubscribe(index === 0 ? "monthly" : "annual")}
+                  disabled={subscribingPlan !== null || !plan.price || plan.price.trim() === ""}
+                  className={`mt-6 inline-flex items-center justify-center px-6 py-3 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                     index === 1
                       ? "bg-[#C9A84C] text-[#0A0A0A] hover:bg-[#E2C872]"
                       : "bg-[#0A0A0A] text-[#F5F0E8] hover:bg-[#C9A84C] hover:text-[#0A0A0A]"
                   }`}
                 >
-                  Choisir cette formule
-                </Link>
+                  {subscribingPlan === (index === 0 ? "monthly" : "annual")
+                    ? "Redirection..."
+                    : index === 1
+                      ? "S'abonner & economiser"
+                      : "Choisir cette formule"}
+                </button>
               </div>
             </AccountCard>
           ))}

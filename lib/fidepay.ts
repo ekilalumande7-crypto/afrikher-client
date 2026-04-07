@@ -32,6 +32,21 @@ interface FidepayPaymentResponse {
   [key: string]: any;
 }
 
+export type FidepayTransactionType = 'subscription' | 'magazine' | 'order';
+export type FidepayTransactionStatus = 'pending' | 'done';
+
+interface TransactionRecord {
+  id: string;
+  transaction_id: string;
+  user_id: string;
+  type: FidepayTransactionType;
+  item_id: string | null;
+  order_id: string | null;
+  amount: number;
+  status: FidepayTransactionStatus;
+  created_at: string;
+}
+
 // Cached token + config
 let cachedToken: { token: string; expiresAt: number } | null = null;
 let cachedConfig: { config: FidepayConfig; expiresAt: number } | null = null;
@@ -41,6 +56,90 @@ function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   return createClient(url, key);
+}
+
+// ── Generate transaction ID (12 chars alphanumeric) ──
+export function generateTransactionId(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.randomBytes(12);
+
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+}
+
+// ── Create transaction record in pending state ──
+export async function createPendingTransaction(params: {
+  transactionId: string;
+  userId: string;
+  type: FidepayTransactionType;
+  itemId?: string | null;
+  orderId?: string | null;
+  amount: number;
+}): Promise<TransactionRecord> {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      transaction_id: params.transactionId,
+      user_id: params.userId,
+      type: params.type,
+      item_id: params.itemId || null,
+      order_id: params.orderId || null,
+      amount: params.amount,
+      status: 'pending',
+    })
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create pending transaction: ${error?.message || 'unknown error'}`);
+  }
+
+  return data as TransactionRecord;
+}
+
+// ── Read transaction record by external transaction ID ──
+export async function getTransactionById(transactionId: string): Promise<TransactionRecord | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('transaction_id', transactionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to read transaction: ${error.message}`);
+  }
+
+  return (data as TransactionRecord | null) ?? null;
+}
+
+// ── Mark transaction as done ──
+export async function markTransactionDone(transactionId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('transactions')
+    .update({ status: 'done' })
+    .eq('transaction_id', transactionId);
+
+  if (error) {
+    throw new Error(`Failed to update transaction status: ${error.message}`);
+  }
+}
+
+// ── Sync transaction ID if FIDEPAY returns a different one ──
+export async function syncTransactionId(oldId: string, newId: string): Promise<void> {
+  if (oldId === newId) return;
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from('transactions')
+    .update({ transaction_id: newId })
+    .eq('transaction_id', oldId);
+
+  if (error) {
+    throw new Error(`Failed to sync transaction ID: ${error.message}`);
+  }
 }
 
 // ── Read FIDEPAY config from site_config table ──

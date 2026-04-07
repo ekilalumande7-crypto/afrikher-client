@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, ArrowRight, Lock, ShoppingBag, ChevronLeft,
-  ChevronRight, ZoomIn, ZoomOut, Share2, X
+  ArrowLeft, ArrowRight, ChevronLeft, ChevronRight,
+  ZoomIn, ZoomOut, Share2, X
 } from "lucide-react";
+import PaywallBanner from "@/components/paywall/PaywallBanner";
 
 interface Magazine {
   id: string;
@@ -38,16 +39,16 @@ const demoMagazine: Magazine = {
 
 interface Props {
   slug: string;
+  hasAccess: boolean;
+  magazineId: string | null;
 }
 
-export default function MagazineReaderClient({ slug }: Props) {
+export default function MagazineReaderClient({ slug, hasAccess, magazineId }: Props) {
   const [magazine, setMagazine] = useState<Magazine | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasPurchased, setHasPurchased] = useState(false);
   const [currentPage, setCurrentPage] = useState(0); // 0 = cover
   const [isZoomed, setIsZoomed] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -70,19 +71,6 @@ export default function MagazineReaderClient({ slug }: Props) {
 
         if (magError || !magData) throw new Error("Magazine not found");
         setMagazine(magData);
-
-        // Check if user has purchased
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: purchaseData } = await supabase
-            .from("magazine_purchases")
-            .select("id")
-            .eq("magazine_id", magData.id)
-            .eq("user_id", session.user.id)
-            .eq("payment_status", "completed")
-            .single();
-          if (purchaseData) setHasPurchased(true);
-        }
       } catch {
         // Use demo data
         setMagazine({ ...demoMagazine, slug });
@@ -103,8 +91,8 @@ export default function MagazineReaderClient({ slug }: Props) {
   }, [magazine, currentPage]);
 
   const canViewPage = useCallback((pageIndex: number) => {
-    return pageIndex === 0 || hasPurchased;
-  }, [hasPurchased]);
+    return pageIndex === 0 || hasAccess;
+  }, [hasAccess]);
 
   const goToPage = useCallback((page: number) => {
     if (page < 0 || page >= totalPages) return;
@@ -145,11 +133,6 @@ export default function MagazineReaderClient({ slug }: Props) {
     }
   };
 
-  const handlePurchase = () => {
-    // Redirect to checkout page with magazine info
-    window.location.href = `/boutique/checkout?magazine=${slug}`;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -177,6 +160,7 @@ export default function MagazineReaderClient({ slug }: Props) {
   const pageImage = getCurrentPageImage();
   const isOnCover = currentPage === 0;
   const hasPages = magazine.pages.length > 0;
+  const paywallMagazineId = magazineId ?? undefined;
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
@@ -193,7 +177,7 @@ export default function MagazineReaderClient({ slug }: Props) {
             <h1 className="text-sm md:text-base font-display font-bold text-[#F5F0E8] truncate">
               {magazine.title}
             </h1>
-            {hasPages && hasPurchased && (
+            {hasPages && hasAccess && (
               <p className="text-[10px] text-[#9A9A8A] font-body">
                 Page {currentPage + 1} sur {totalPages}
               </p>
@@ -201,7 +185,7 @@ export default function MagazineReaderClient({ slug }: Props) {
           </div>
 
           <div className="flex items-center gap-3">
-            {hasPurchased && hasPages && (
+            {hasAccess && hasPages && (
               <button
                 onClick={() => setIsZoomed(!isZoomed)}
                 className="w-8 h-8 rounded-full bg-[#2A2A2A] flex items-center justify-center text-[#F5F0E8] hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-colors"
@@ -233,7 +217,7 @@ export default function MagazineReaderClient({ slug }: Props) {
         onTouchEnd={handleTouchEnd}
       >
         {/* Left arrow (desktop) */}
-        {hasPurchased && hasPages && currentPage > 0 && (
+        {hasAccess && hasPages && currentPage > 0 && (
           <button
             onClick={prevPage}
             className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-[#2A2A2A]/80 backdrop-blur-sm flex items-center justify-center text-[#F5F0E8] hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-colors hidden md:flex"
@@ -258,30 +242,18 @@ export default function MagazineReaderClient({ slug }: Props) {
               </div>
             )}
 
-            {/* Paywall overlay for non-cover pages when not purchased */}
-            {!isOnCover && !hasPurchased && (
-              <div className="absolute inset-0 bg-[#0A0A0A]/95 backdrop-blur-lg flex flex-col items-center justify-center p-8 text-center">
-                <Lock size={48} className="text-[#C9A84C] mb-6" />
-                <h2 className="text-2xl md:text-3xl font-display font-bold text-[#F5F0E8] mb-3">
-                  Contenu verrouille
-                </h2>
-                <p className="text-[#9A9A8A] font-body mb-8 max-w-sm">
-                  Achetez ce numero pour acceder a l&apos;integralite des {magazine.page_count} pages.
-                </p>
-                <button
-                  onClick={handlePurchase}
-                  disabled={purchasing}
-                  className="inline-flex items-center gap-3 bg-[#C9A84C] text-[#0A0A0A] px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-[#E8C97A] transition-colors disabled:opacity-50"
-                >
-                  <ShoppingBag size={16} />
-                  {purchasing ? "Redirection..." : `Acheter \u2014 ${magazine.price.toFixed(2)}\u20ac`}
-                </button>
+            {/* Paywall overlay for non-cover pages when no access */}
+            {!isOnCover && !hasAccess && (
+              <div className="absolute inset-0 bg-[#0A0A0A]/95 backdrop-blur-lg flex items-center justify-center p-4">
+                <div className="w-full max-w-md">
+                  <PaywallBanner type="magazine" magazineId={paywallMagazineId} />
+                </div>
               </div>
             )}
           </div>
 
           {/* Page indicator dots (mobile) */}
-          {hasPurchased && hasPages && totalPages <= 30 && (
+          {hasAccess && hasPages && totalPages <= 30 && (
             <div className="flex justify-center gap-1.5 mt-6 md:hidden flex-wrap">
               {Array.from({ length: Math.min(totalPages, 15) }).map((_, i) => (
                 <button
@@ -300,7 +272,7 @@ export default function MagazineReaderClient({ slug }: Props) {
         </div>
 
         {/* Right arrow (desktop) */}
-        {hasPurchased && hasPages && currentPage < totalPages - 1 && (
+        {hasAccess && hasPages && currentPage < totalPages - 1 && (
           <button
             onClick={nextPage}
             className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full bg-[#2A2A2A]/80 backdrop-blur-sm flex items-center justify-center text-[#F5F0E8] hover:bg-[#C9A84C] hover:text-[#0A0A0A] transition-colors hidden md:flex"
@@ -313,27 +285,12 @@ export default function MagazineReaderClient({ slug }: Props) {
       {/* ══════ Bottom Bar ══════ */}
       <footer className="bg-[#0A0A0A] border-t border-[#C9A84C]/10 px-4 md:px-8 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Purchase CTA if on cover and not purchased */}
-          {isOnCover && !hasPurchased ? (
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <p className="text-[#F5F0E8] font-display font-bold text-lg">
-                  {magazine.price.toFixed(2)}&euro;
-                </p>
-                <p className="text-[10px] text-[#9A9A8A] font-body uppercase tracking-widest">
-                  {magazine.page_count} pages &bull; Acces complet
-                </p>
-              </div>
-              <button
-                onClick={handlePurchase}
-                disabled={purchasing}
-                className="inline-flex items-center gap-3 bg-[#C9A84C] text-[#0A0A0A] px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-[#E8C97A] transition-colors disabled:opacity-50"
-              >
-                <ShoppingBag size={14} />
-                {purchasing ? "..." : "Acheter"}
-              </button>
+          {/* PaywallBanner if no access */}
+          {!hasAccess ? (
+            <div className="w-full">
+              <PaywallBanner type="magazine" magazineId={paywallMagazineId} />
             </div>
-          ) : hasPurchased && hasPages ? (
+          ) : hasAccess && hasPages ? (
             /* Page navigation for purchased magazines */
             <div className="flex items-center justify-between w-full">
               <button
@@ -380,37 +337,14 @@ export default function MagazineReaderClient({ slug }: Props) {
       {/* ══════ Paywall Modal ══════ */}
       {showPaywall && (
         <div className="fixed inset-0 z-[200] bg-[#0A0A0A]/90 backdrop-blur-sm flex items-center justify-center p-6">
-          <div className="bg-[#1A1A1A] border border-[#C9A84C]/20 rounded-lg max-w-md w-full p-8 text-center relative">
+          <div className="relative max-w-lg w-full">
             <button
               onClick={() => setShowPaywall(false)}
-              className="absolute top-4 right-4 text-[#9A9A8A] hover:text-[#F5F0E8] transition-colors"
+              className="absolute -top-10 right-0 text-[#9A9A8A] hover:text-[#F5F0E8] transition-colors z-10"
             >
               <X size={20} />
             </button>
-            <Lock size={40} className="text-[#C9A84C] mx-auto mb-5" />
-            <h3 className="text-2xl font-display font-bold text-[#F5F0E8] mb-3">
-              Acces reserve
-            </h3>
-            <p className="text-[#9A9A8A] font-body text-sm mb-2">
-              Ce contenu est reserve aux acheteurs de ce numero.
-            </p>
-            <p className="text-[#C9A84C] font-display font-bold text-3xl mb-6">
-              {magazine.price.toFixed(2)}&euro;
-            </p>
-            <button
-              onClick={() => { setShowPaywall(false); handlePurchase(); }}
-              disabled={purchasing}
-              className="w-full inline-flex items-center justify-center gap-3 bg-[#C9A84C] text-[#0A0A0A] px-8 py-4 text-sm font-bold uppercase tracking-widest hover:bg-[#E8C97A] transition-colors disabled:opacity-50 mb-3"
-            >
-              <ShoppingBag size={16} />
-              {purchasing ? "Redirection..." : "Acheter maintenant"}
-            </button>
-            <button
-              onClick={() => setShowPaywall(false)}
-              className="text-[#9A9A8A] text-xs font-body hover:text-[#F5F0E8] transition-colors"
-            >
-              Retour a la couverture
-            </button>
+            <PaywallBanner type="magazine" magazineId={paywallMagazineId} />
           </div>
         </div>
       )}

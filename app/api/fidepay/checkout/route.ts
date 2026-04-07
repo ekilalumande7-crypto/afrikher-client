@@ -3,7 +3,11 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { getServiceRoleClient } from '@/lib/supabase';
-import { createPayment } from '@/lib/fidepay';
+import {
+  createPayment,
+  createPendingTransaction,
+  syncTransactionId,
+} from '@/lib/fidepay';
 
 export async function POST(request: Request) {
   try {
@@ -129,6 +133,27 @@ export async function POST(request: Request) {
 
     const supabase = getServiceRoleClient();
 
+    const itemIds = items
+      .map((item: any) => item.product_id)
+      .filter((value: unknown): value is string => typeof value === 'string' && value.length > 0);
+
+    let transactionType: 'magazine' | 'order' = 'order';
+    let transactionItemId: string | null = null;
+
+    if (itemIds.length > 0) {
+      const { data: magazineMatches, error: magazineMatchError } = await supabase
+        .from('magazines')
+        .select('id')
+        .in('id', itemIds);
+
+      if (magazineMatchError) {
+        console.warn('Magazine type detection failed, defaulting to order:', magazineMatchError);
+      } else if ((magazineMatches?.length || 0) === itemIds.length) {
+        transactionType = 'magazine';
+        transactionItemId = itemIds[0] || null;
+      }
+    }
+
     // Create order record
     const orderData: Record<string, any> = {
       items,
@@ -162,6 +187,15 @@ export async function POST(request: Request) {
     const shortId = order.id.replace(/-/g, '').substring(0, 12).toUpperCase();
     const transactionId = shortId;
 
+    await createPendingTransaction({
+      transactionId,
+      userId,
+      type: transactionType,
+      itemId: transactionItemId,
+      orderId: order.id,
+      amount: calculatedAmount,
+    });
+
     try {
       const payment = await createPayment({
         amount: calculatedAmount,
@@ -180,6 +214,8 @@ export async function POST(request: Request) {
         || payment.data?.transaction_id
         || payment.result?.transaction_id
         || transactionId; // fallback to our generated ID
+
+      await syncTransactionId(transactionId, paymentTxId);
 
       const paymentUrl = payment.checkout_url
         || payment.payment_url
@@ -203,6 +239,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         order,
+        paymentUrl,
         checkout_url: paymentUrl,
       });
     } catch (fidepayError: any) {
