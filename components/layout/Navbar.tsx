@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [visibleItems, setVisibleItems] = useState<boolean[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -52,6 +55,35 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [isMenuOpen]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUser() {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+
+      if (mounted) {
+        setUser(authUser ?? null);
+      }
+    }
+
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const navLinks = [
     { id: "01", name: "Accueil", href: "/" },
     { id: "02", name: "Magazine", href: "/magazine" },
@@ -64,6 +96,8 @@ export default function Navbar() {
   ];
 
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
+  const userLabel = user?.user_metadata?.full_name?.split(" ")[0] || user?.email || "Mon compte";
+  const authHref = user ? "/dashboard" : "/auth/login";
 
   return (
     <>
@@ -87,12 +121,12 @@ export default function Navbar() {
 
           {/* Right side: Login + Menu */}
           <div className="flex items-center gap-6">
-            {/* SE CONNECTER — visible on desktop */}
+            {/* Auth action — visible on desktop */}
             <Link
-              href="/auth/login"
+              href={authHref}
               className="hidden md:inline-flex items-center border border-[#C9A84C]/40 text-[#C9A84C] px-5 py-2 font-body font-medium text-[0.55rem] tracking-[0.2em] uppercase hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/60 transition-all duration-300"
             >
-              Se connecter
+              {userLabel}
             </Link>
 
             {/* Menu Toggle */}
@@ -199,14 +233,14 @@ export default function Navbar() {
           <div className="mt-2 h-[1px] bg-white/[0.04]" />
         </nav>
 
-        {/* Se connecter — inside menu */}
+        {/* Auth action — inside menu */}
         <div className="px-8 md:px-12 pb-4">
           <Link
-            href="/auth/login"
+            href={authHref}
             onClick={closeMenu}
             className="block w-full text-center bg-[#C9A84C] text-[#0A0A0A] py-3.5 font-body font-medium text-[0.7rem] tracking-[0.25em] uppercase hover:bg-[#E8C97A] transition-all duration-300"
           >
-            Se connecter
+            {userLabel}
           </Link>
         </div>
 
