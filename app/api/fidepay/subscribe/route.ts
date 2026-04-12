@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
     if (insertResult.error) {
       // Unique constraint violation — update the existing row instead
-      console.log('Insert failed (likely UNIQUE), trying update:', insertResult.error.code);
+      console.log('Insert failed, trying update. Error:', insertResult.error.code, insertResult.error.message, insertResult.error.details);
       const updateResult = await supabase
         .from('subscriptions')
         .update(subscriptionData)
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     if (subError || !subscription) {
       console.error('Subscription upsert error:', subError);
       return NextResponse.json(
-        { error: 'Failed to create subscription' },
+        { error: `Failed to create subscription: ${subError?.message || subError?.code || 'unknown'}` },
         { status: 500 }
       );
     }
