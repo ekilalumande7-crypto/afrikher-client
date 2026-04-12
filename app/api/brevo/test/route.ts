@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-helpers';
-import { testBrevoConnection } from '@/lib/brevo';
+import { testBrevoConnection, clearBrevoConfigCache } from '@/lib/brevo';
+import { getServiceRoleClient } from '@/lib/supabase';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,40 @@ export async function POST(request: Request) {
         { error: authResult.error },
         { status: authResult.status }
       );
+    }
+
+    // Check if body contains config to save first
+    let body: Record<string, string> = {};
+    try {
+      body = await request.json();
+    } catch {
+      // No body is fine — just test with existing config
+    }
+
+    // If config values are provided, save them via service role (bypasses RLS)
+    if (body && Object.keys(body).length > 0) {
+      const allowedKeys = ['brevo_api_key', 'brevo_sender_email', 'brevo_sender_name', 'brevo_newsletter_list_id'];
+      const supabase = getServiceRoleClient();
+
+      for (const key of allowedKeys) {
+        if (body[key] !== undefined) {
+          const { error: upsertError } = await supabase
+            .from('site_config')
+            .upsert(
+              { key, value: body[key].trim(), updated_at: new Date().toISOString() },
+              { onConflict: 'key' }
+            );
+
+          if (upsertError) {
+            console.error(`[Brevo test] Failed to save ${key}:`, upsertError);
+          } else {
+            console.log(`[Brevo test] Saved ${key} to site_config`);
+          }
+        }
+      }
+
+      // Clear cache so test uses the freshly saved values
+      clearBrevoConfigCache();
     }
 
     const result = await testBrevoConnection();
