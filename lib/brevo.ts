@@ -38,11 +38,11 @@ async function getBrevoConfig(): Promise<{
       for (const row of data) {
         configMap[row.key] = row.value || '';
       }
-      // site_config takes priority over .env
-      if (configMap['brevo_api_key']) apiKey = configMap['brevo_api_key'];
-      if (configMap['brevo_sender_email']) senderEmail = configMap['brevo_sender_email'];
-      if (configMap['brevo_sender_name']) senderName = configMap['brevo_sender_name'];
-      if (configMap['brevo_newsletter_list_id']) listId = parseInt(configMap['brevo_newsletter_list_id'], 10) || 2;
+      // site_config takes priority over .env — trim to remove accidental whitespace
+      if (configMap['brevo_api_key']) apiKey = configMap['brevo_api_key'].trim();
+      if (configMap['brevo_sender_email']) senderEmail = configMap['brevo_sender_email'].trim();
+      if (configMap['brevo_sender_name']) senderName = configMap['brevo_sender_name'].trim();
+      if (configMap['brevo_newsletter_list_id']) listId = parseInt(configMap['brevo_newsletter_list_id'].trim(), 10) || 2;
     }
   } catch (err) {
     console.error('Failed to load Brevo config from site_config, using .env fallback:', err);
@@ -120,11 +120,21 @@ export async function sendCampaign(
 }
 
 /**
+ * Clear the cached Brevo config so next call reads fresh from DB.
+ */
+export function clearBrevoConfigCache() {
+  brevoConfigCache = null;
+  brevoConfigCacheTime = 0;
+}
+
+/**
  * Test the Brevo connection by fetching account info.
- * Returns account email on success.
+ * Always clears cache first to use the latest saved key.
  */
 export async function testBrevoConnection(): Promise<{ success: boolean; email?: string; error?: string }> {
   try {
+    // Force fresh config read so we use the latest saved key
+    clearBrevoConfigCache();
     const response = await brevoRequest('/account', 'GET');
     if (response.ok) {
       const data = await response.json();

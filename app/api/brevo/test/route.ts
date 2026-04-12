@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     }
 
     const result = await testBrevoConnection();
+    console.log('[Brevo test]', result.success ? 'OK' : 'FAIL', result.error || result.email);
 
     if (result.success) {
       return corsJson({
