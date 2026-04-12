@@ -210,23 +210,56 @@ export default function AbonnementsPage() {
     loadConfig();
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubscribe = async (planId: string) => {
     const selectedPlan = plans.find((plan) => plan.id === planId);
     if (!selectedPlan?.enabled) return;
 
     setLoading(planId);
+    setError(null);
+
     try {
+      // Get fresh auth token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        // Not logged in — redirect to login with return URL
+        window.location.href = `/auth/login?redirect=${encodeURIComponent("/abonnement")}`;
+        return;
+      }
+
       const res = await fetch("/api/fidepay/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ plan: planId === "monthly" ? "monthly" : "annual" }),
       });
+
       const data = await res.json();
-      if (data.checkoutUrl || data.checkout_url) {
-        window.location.href = data.checkoutUrl || data.checkout_url;
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Token expired — redirect to login
+          window.location.href = `/auth/login?redirect=${encodeURIComponent("/abonnement")}`;
+          return;
+        }
+        setError(data.error || "Une erreur est survenue. Veuillez réessayer.");
+        return;
+      }
+
+      const paymentUrl = data.checkoutUrl || data.checkout_url || data.paymentUrl;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        setError("Le service de paiement est temporairement indisponible.");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Subscribe error:", err);
+      setError("Impossible de contacter le service de paiement.");
     } finally {
       setLoading(null);
     }
@@ -300,6 +333,12 @@ export default function AbonnementsPage() {
               {config.sub_section_intro || "Choisissez la formule qui accompagne votre lecture, avec une présence plus sobre, plus raffinée, plus proche d'un club privé que d'une page tarifaire classique."}
             </p>
           </div>
+
+          {error && (
+            <div className="mt-8 border border-red-300/50 bg-red-50 px-5 py-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           <div className="mt-10 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:gap-8">
             {plans.map((plan) => (
