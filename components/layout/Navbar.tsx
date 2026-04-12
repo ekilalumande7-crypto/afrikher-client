@@ -244,13 +244,29 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Footer tagline */}
+        {/* Legal links + Footer tagline */}
         <div className="px-8 md:px-12 py-6 border-t border-white/[0.04]">
+          <div className="flex flex-wrap gap-x-5 gap-y-1 mb-4">
+            {[
+              { name: "Conditions d\u2019utilisation", href: "/conditions-utilisation" },
+              { name: "Confidentialit\u00e9", href: "/confidentialite" },
+              { name: "Cookies", href: "/cookies" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={closeMenu}
+                className="text-[0.55rem] text-white/20 font-body tracking-[0.1em] hover:text-[#C9A84C]/60 transition-colors duration-300"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
           <p className={cn(
             "font-display italic text-[0.8rem] text-white/20 text-right transition-all duration-700 delay-[600ms]",
             isMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}>
-            L&apos;élégance hors du commun.
+            L&apos;\u00e9l\u00e9gance hors du commun.
           </p>
         </div>
       </div>
