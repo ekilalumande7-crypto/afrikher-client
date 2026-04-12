@@ -145,16 +145,6 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Scroll indicator — z-[10] */}
-      <div
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-[10] transition-all duration-1000 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
-        style={{ transitionDelay: "1.5s" }}
-      >
-        <span className="text-[0.45rem] text-[#F5F0E8]/20 tracking-[0.3em] uppercase font-body">Découvrir</span>
-        <div className="w-[1px] h-5 bg-gradient-to-b from-[#C9A84C]/25 to-transparent animate-pulse" />
-      </div>
     </section>
   );
 }
