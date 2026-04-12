@@ -37,14 +37,24 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
   const [isZoomed, setIsZoomed] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [clientHasAccess, setClientHasAccess] = useState(serverHasAccess);
+  const [paymentPending, setPaymentPending] = useState(false);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const pollCountRef = useRef(0);
 
-  // Client-side fallback: check magazine PURCHASE if server didn't detect session
+  // Detect ?paid=1 in URL (user just returned from FIDEPAY)
+  const isPaidRedirect = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("paid") === "1";
+
+  // Client-side fallback: check magazine PURCHASE if server didn't detect session.
   // Magazines are PAID content — subscription alone does NOT grant access.
+  // When ?paid=1 is present, poll every 3s for up to 60s waiting for webhook.
   useEffect(() => {
     if (serverHasAccess) { setClientHasAccess(true); return; }
-    async function checkAccess() {
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let cancelled = false;
+
+    async function checkPurchase(): Promise<boolean> {
       try {
         const { createClient } = await import("@supabase/supabase-js");
         const supabase = createClient(
@@ -52,9 +62,9 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5a3Z6eml0Z21uaXBzY3hiaGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjc1ODAsImV4cCI6MjA1ODk0MzU4MH0.yqOgQhnMKOaAoLkVDwH99jEMVilrp42ckFWPhNGk-Ys"
         );
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user || !magazineId) return;
+        if (!user || !magazineId) return false;
 
-        // Check magazine purchase by user_id
+        // Check by user_id
         const { data: purchaseByUser } = await supabase
           .from("magazine_purchases")
           .select("id")
@@ -62,9 +72,9 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
           .eq("user_id", user.id)
           .eq("payment_status", "completed")
           .maybeSingle();
-        if (purchaseByUser) { setClientHasAccess(true); return; }
+        if (purchaseByUser) return true;
 
-        // Fallback: check purchase by email
+        // Fallback: check by email
         if (user.email) {
           const { data: purchaseByEmail } = await supabase
             .from("magazine_purchases")
@@ -73,12 +83,52 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
             .eq("customer_email", user.email)
             .eq("payment_status", "completed")
             .maybeSingle();
-          if (purchaseByEmail) { setClientHasAccess(true); return; }
+          if (purchaseByEmail) return true;
         }
       } catch { /* silent */ }
+      return false;
     }
-    checkAccess();
-  }, [serverHasAccess, magazineId]);
+
+    async function runCheck() {
+      const found = await checkPurchase();
+      if (cancelled) return;
+      if (found) {
+        setClientHasAccess(true);
+        setPaymentPending(false);
+        if (intervalId) clearInterval(intervalId);
+        // Clean the URL (remove ?paid=1)
+        if (isPaidRedirect) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
+        return;
+      }
+
+      // If ?paid=1 and still no purchase found, start/continue polling
+      if (isPaidRedirect) {
+        setPaymentPending(true);
+        pollCountRef.current++;
+        // Stop polling after 20 attempts (60 seconds)
+        if (pollCountRef.current >= 20 && intervalId) {
+          clearInterval(intervalId);
+          setPaymentPending(false);
+        }
+      }
+    }
+
+    // Initial check
+    runCheck();
+
+    // If user just paid, poll every 3 seconds waiting for webhook
+    if (isPaidRedirect && !serverHasAccess) {
+      setPaymentPending(true);
+      intervalId = setInterval(runCheck, 3000);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [serverHasAccess, magazineId, isPaidRedirect]);
 
   const hasAccess = clientHasAccess;
 
@@ -233,6 +283,53 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
             allowFullScreen
             title={magazine.title}
           />
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PAYMENT PENDING: user just paid (?paid=1) but webhook hasn't completed yet
+  // Show a friendly "verifying payment" screen instead of the paywall
+  // ══════════════════════════════════════════════════════════════
+  if (!hasAccess && paymentPending) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col">
+        <header className="sticky top-0 z-50 bg-[#0A0A0A] border-b border-[#C9A84C]/10">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+            <Link href="/magazine" className="flex items-center gap-3 text-[#F5F0E8] hover:text-[#C9A84C] transition-colors">
+              <ArrowLeft size={18} />
+              <span className="text-xs font-body uppercase tracking-widest hidden sm:inline">Catalogue</span>
+            </Link>
+            <h1 className="text-sm md:text-base font-display font-bold text-[#F5F0E8] truncate flex-1 text-center mx-4">
+              {magazine.title}
+            </h1>
+            <div className="w-8" />
+          </div>
+        </header>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-10">
+          <div className="max-w-md w-full mb-10">
+            <div className="relative aspect-[3/4] bg-[#1A1A1A] rounded-sm overflow-hidden shadow-2xl shadow-black/60">
+              {magazine.cover_image && (
+                <img src={magazine.cover_image} alt={magazine.title} className="w-full h-full object-cover" />
+              )}
+            </div>
+          </div>
+
+          <div className="max-w-lg w-full text-center">
+            <div className="w-12 h-12 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+            <h3 className="font-display text-2xl text-[#F5F0E8] mb-3">
+              Paiement en cours de validation
+            </h3>
+            <p className="font-body text-[#9A9A8A] text-sm leading-relaxed mb-6">
+              Votre paiement a bien ete recu. Nous verifions la confirmation aupres de notre partenaire de paiement.
+              Cette page se mettra a jour automatiquement dans quelques instants.
+            </p>
+            <p className="font-body text-[#C9A84C]/60 text-xs">
+              Verification en cours...
+            </p>
+          </div>
         </div>
       </div>
     );

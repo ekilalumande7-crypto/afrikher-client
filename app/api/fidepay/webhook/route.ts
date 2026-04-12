@@ -10,6 +10,7 @@ import { sendTransactionalEmail } from '@/lib/brevo';
 import {
   orderConfirmationEmail,
   subscriptionConfirmedEmail,
+  magazinePurchaseEmail,
 } from '@/lib/email-templates';
 
 // ══════════════════════════════════════════════
@@ -175,6 +176,34 @@ async function handleTransactionWebhook(transaction: {
       }
 
       console.log('[FIDEPAY WEBHOOK] Magazine purchase recorded:', transaction.item_id, 'user:', transaction.user_id, 'email:', customerEmail);
+
+      // Send magazine purchase confirmation email
+      try {
+        const { data: magInfo } = await supabase
+          .from('magazines')
+          .select('title, slug, pdf_url')
+          .eq('id', transaction.item_id)
+          .maybeSingle();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', transaction.user_id)
+          .maybeSingle();
+
+        const recipientEmail = customerEmail;
+        if (recipientEmail && magInfo) {
+          const { subject, html } = magazinePurchaseEmail(
+            profile?.full_name || '',
+            magInfo.title || 'Magazine AFRIKHER',
+            magInfo.slug || '',
+            magInfo.pdf_url || null
+          );
+          await sendTransactionalEmail({ email: recipientEmail, name: profile?.full_name }, subject, html);
+          console.log('[FIDEPAY WEBHOOK] Magazine purchase email sent to', recipientEmail);
+        }
+      } catch (emailErr) {
+        console.error('[FIDEPAY WEBHOOK] Magazine purchase email error:', emailErr);
+      }
 
       if (transaction.order_id) {
         await supabase

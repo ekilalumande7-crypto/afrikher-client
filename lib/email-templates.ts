@@ -147,3 +147,23 @@ export function newsletterWelcomeEmail(name: string): { subject: string; html: s
     `),
   };
 }
+
+export function magazinePurchaseEmail(
+  name: string,
+  magazineTitle: string,
+  magazineSlug: string,
+  pdfUrl: string | null
+): { subject: string; html: string } {
+  const readUrl = `${SITE_URL}/magazine/${magazineSlug}`;
+  return {
+    subject: `Votre magazine AFRIKHER est pret : ${magazineTitle}`,
+    html: layout(`
+      ${heading('Achat confirme')}
+      <p>${name ? 'Cher(e) ' + name + ',' : ''} merci pour votre achat.</p>
+      <p>Votre exemplaire de <strong>${magazineTitle}</strong> est desormais accessible dans votre espace AFRIKHER.</p>
+      ${button('Lire le magazine', readUrl)}
+      ${pdfUrl ? `<p style="margin-top:16px;text-align:center;"><a href="${pdfUrl}" style="color:#C9A84C;text-decoration:underline;font-size:14px;">Telecharger le PDF</a></p>` : ''}
+      ${subtle('Cet achat est definitif. Vous pouvez relire votre magazine a tout moment depuis votre compte.')}
+    `),
+  };
+}
