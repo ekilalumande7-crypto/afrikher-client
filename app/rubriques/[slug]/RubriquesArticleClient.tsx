@@ -150,7 +150,7 @@ interface RubriquesArticleClientProps {
 
 export default function RubriquesArticleClient({
   slug,
-  hasAccess,
+  hasAccess: serverHasAccess,
 }: RubriquesArticleClientProps) {
   const [article, setArticle] = useState<Article | null>(null);
   const [related, setRelated] = useState<RelatedArticle[]>([]);
@@ -159,6 +159,49 @@ export default function RubriquesArticleClient({
   const [activeToc, setActiveToc] = useState<string>("");
   const [processed, setProcessed] = useState<{ html: string; toc: TocItem[] }>({ html: "", toc: [] });
   const articleRef = useRef<HTMLDivElement | null>(null);
+  const [clientHasAccess, setClientHasAccess] = useState(serverHasAccess);
+
+  // Client-side fallback: if server didn't detect session, check subscription from client
+  useEffect(() => {
+    if (serverHasAccess) {
+      setClientHasAccess(true);
+      return;
+    }
+    async function checkAccess() {
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xykvzzitgmnipscxbhcf.supabase.co",
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5a3Z6eml0Z21uaXBzY3hiaGNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNjc1ODAsImV4cCI6MjA1ODk0MzU4MH0.yqOgQhnMKOaAoLkVDwH99jEMVilrp42ckFWPhNGk-Ys"
+        );
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Check by user_id
+        const { data: subByUser } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+        if (subByUser) { setClientHasAccess(true); return; }
+
+        // Fallback by email
+        if (user.email) {
+          const { data: subByEmail } = await supabase
+            .from("subscriptions")
+            .select("id")
+            .eq("customer_email", user.email)
+            .eq("status", "active")
+            .maybeSingle();
+          if (subByEmail) { setClientHasAccess(true); return; }
+        }
+      } catch { /* silent */ }
+    }
+    checkAccess();
+  }, [serverHasAccess]);
+
+  const hasAccess = clientHasAccess;
 
   useEffect(() => {
     if (!slug) return;
