@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
+import CookieConsent from "@/components/CookieConsent";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="fr" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="antialiased" suppressHydrationWarning style={{ backgroundColor: "#0A0A0A", margin: 0, padding: 0 }}>
         {children}
+        <CookieConsent />
       </body>
     </html>
   );
