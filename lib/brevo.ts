@@ -22,7 +22,7 @@ async function getBrevoConfig(): Promise<{
   }
 
   let apiKey = process.env.BREVO_API_KEY || '';
-  let senderEmail = 'noreply@afrikher.com';
+  let senderEmail = ''; // Will be resolved below — must be a verified Brevo sender
   let senderName = 'AFRIKHER';
   let listId = 2;
 
@@ -46,6 +46,34 @@ async function getBrevoConfig(): Promise<{
     }
   } catch (err) {
     console.error('Failed to load Brevo config from site_config, using .env fallback:', err);
+  }
+
+  // If no sender email configured, auto-detect from Brevo verified senders
+  if (!senderEmail && apiKey) {
+    try {
+      const sendersRes = await fetch(`${BREVO_API_URL}/senders`, {
+        headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      });
+      if (sendersRes.ok) {
+        const sendersData = await sendersRes.json();
+        const activeSender = sendersData.senders?.find((s: { active: boolean }) => s.active);
+        if (activeSender) {
+          senderEmail = activeSender.email;
+          if (!senderName || senderName === 'AFRIKHER') {
+            senderName = activeSender.name || 'AFRIKHER';
+          }
+          console.log(`[BREVO] Auto-detected verified sender: ${senderEmail} (${senderName})`);
+        }
+      }
+    } catch {
+      // Ignore — will fall back to default below
+    }
+  }
+
+  // Ultimate fallback
+  if (!senderEmail) {
+    senderEmail = 'noreply@afrikher.com';
+    console.warn('[BREVO] No verified sender found — using fallback noreply@afrikher.com (may fail if domain not verified)');
   }
 
   brevoConfigCache = { apiKey, senderEmail, senderName, listId };
@@ -94,12 +122,24 @@ export async function sendTransactionalEmail(
   overrideSenderName?: string
 ): Promise<Response> {
   const config = await getBrevoConfig();
-  return brevoRequest('/smtp/email', 'POST', {
+
+  console.log(`[BREVO] Sending email to ${to.email} — subject: "${subject}" — sender: ${config.senderEmail}`);
+
+  const response = await brevoRequest('/smtp/email', 'POST', {
     sender: { name: overrideSenderName || config.senderName, email: config.senderEmail },
     to: [to],
     subject,
     htmlContent,
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`[BREVO] Email send failed (${response.status}): ${errorText}`);
+    throw new Error(`Brevo email send failed (${response.status}): ${errorText}`);
+  }
+
+  console.log(`[BREVO] Email sent successfully to ${to.email}`);
+  return response;
 }
 
 export async function sendCampaign(

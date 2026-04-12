@@ -106,12 +106,28 @@ async function handleTransactionWebhook(transaction: {
           .single();
         const { data: authUser } = await supabase.auth.admin.getUserById(transaction.user_id);
         const userEmail = authUser?.user?.email;
-        if (userEmail) {
+
+        // Fetch the actual plan from the subscription record
+        const { data: subRecord } = await supabase
+          .from('subscriptions')
+          .select('plan, customer_email')
+          .eq('user_id', transaction.user_id)
+          .maybeSingle();
+        const actualPlan = subRecord?.plan || 'monthly';
+        const fallbackEmail = subRecord?.customer_email;
+        const recipientEmail = userEmail || fallbackEmail;
+
+        console.log('[FIDEPAY WEBHOOK] Subscription email — user:', transaction.user_id, 'email:', recipientEmail, 'plan:', actualPlan);
+
+        if (recipientEmail) {
           const { subject, html } = subscriptionConfirmedEmail(
             profile?.full_name || '',
-            'monthly'
+            actualPlan
           );
-          await sendTransactionalEmail({ email: userEmail, name: profile?.full_name }, subject, html);
+          await sendTransactionalEmail({ email: recipientEmail, name: profile?.full_name }, subject, html);
+          console.log('[FIDEPAY WEBHOOK] Subscription confirmation email sent to', recipientEmail);
+        } else {
+          console.warn('[FIDEPAY WEBHOOK] No email found for user', transaction.user_id, '— skipping confirmation email');
         }
       } catch (emailErr) {
         console.error('[FIDEPAY WEBHOOK] Subscription email error:', emailErr);
