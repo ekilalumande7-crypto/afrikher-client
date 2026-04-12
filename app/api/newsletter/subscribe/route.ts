@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
-import { addContact } from '@/lib/brevo';
+import { addContact, sendTransactionalEmail } from '@/lib/brevo';
+import { newsletterWelcomeEmail } from '@/lib/email-templates';
 
 export async function POST(request: Request) {
   try {
@@ -62,6 +63,14 @@ export async function POST(request: Request) {
     if (!brevoResponse.ok) {
       console.error('Brevo error:', await brevoResponse.text());
       // Continue anyway - user is in our system
+    }
+
+    // Send newsletter welcome email
+    try {
+      const { subject, html } = newsletterWelcomeEmail(name || '');
+      await sendTransactionalEmail({ email, name }, subject, html);
+    } catch (emailErr) {
+      console.error('Newsletter welcome email error:', emailErr);
     }
 
     return NextResponse.json({

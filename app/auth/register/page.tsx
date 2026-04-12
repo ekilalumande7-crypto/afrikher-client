@@ -54,6 +54,17 @@ export default function RegisterPage() {
       return;
     }
 
+    // Send welcome email via Brevo (best-effort, don't block)
+    try {
+      fetch("/api/auth/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), name: fullName.trim() }),
+      });
+    } catch {
+      // Silent — welcome email is not critical
+    }
+
     setSuccess(
       "Votre compte a ete cree. Verifiez votre boite email pour confirmer votre inscription."
     );

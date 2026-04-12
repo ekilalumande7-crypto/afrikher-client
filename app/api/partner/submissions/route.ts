@@ -2,6 +2,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { requirePartner } from '@/lib/auth-helpers';
 import { sendAdminAlert } from '@/lib/notifications';
+import { sendTransactionalEmail } from '@/lib/brevo';
+import { submissionReceivedEmail } from '@/lib/email-templates';
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,6 +109,20 @@ export async function POST(request: Request) {
       });
     } catch (alertError) {
       console.error('Failed to send admin alert:', alertError);
+    }
+
+    // Send confirmation email to partner via Brevo
+    try {
+      const partnerEmail = authResult.user?.email;
+      if (partnerEmail) {
+        const { subject, html } = submissionReceivedEmail(
+          authResult.profile?.full_name || '',
+          title
+        );
+        await sendTransactionalEmail({ email: partnerEmail, name: authResult.profile?.full_name }, subject, html);
+      }
+    } catch (emailErr) {
+      console.error('Failed to send submission email:', emailErr);
     }
 
     return NextResponse.json({ success: true, data }, { status: 201 });

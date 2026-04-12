@@ -6,6 +6,11 @@ import {
   parseWebhookParams,
   verifyWebhookSignature,
 } from '@/lib/fidepay';
+import { sendTransactionalEmail } from '@/lib/brevo';
+import {
+  orderConfirmationEmail,
+  subscriptionConfirmedEmail,
+} from '@/lib/email-templates';
 
 // ══════════════════════════════════════════════
 // FIDEPAY IPN WEBHOOK
@@ -90,6 +95,26 @@ async function handleTransactionWebhook(transaction: {
 
       if (error) {
         throw new Error(`Subscription upsert failed: ${error.message}`);
+      }
+
+      // Send subscription confirmation email via Brevo
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', transaction.user_id)
+          .single();
+        const { data: authUser } = await supabase.auth.admin.getUserById(transaction.user_id);
+        const userEmail = authUser?.user?.email;
+        if (userEmail) {
+          const { subject, html } = subscriptionConfirmedEmail(
+            profile?.full_name || '',
+            'monthly'
+          );
+          await sendTransactionalEmail({ email: userEmail, name: profile?.full_name }, subject, html);
+        }
+      } catch (emailErr) {
+        console.error('[FIDEPAY WEBHOOK] Subscription email error:', emailErr);
       }
     }
 
@@ -239,6 +264,56 @@ async function handleLegacyOrderWebhook(webhookData: {
       });
     } catch (notificationError) {
       console.error('[FIDEPAY WEBHOOK] Notification error:', notificationError);
+    }
+
+    // Send order confirmation email via Brevo
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', order.user_id)
+        .single();
+      const customerEmail = order.customer_email;
+      if (!customerEmail) {
+        const { data: authUser } = await supabase.auth.admin.getUserById(order.user_id);
+        if (authUser?.user?.email) {
+          const items = Array.isArray(order.items) ? order.items : [];
+          const { subject, html } = orderConfirmationEmail(
+            profile?.full_name || '',
+            order.id,
+            String(order.total || '0'),
+            items.map((i: { name?: string; qty?: number; price?: number }) => ({
+              name: i.name || 'Article',
+              qty: i.qty || 1,
+              price: i.price || 0,
+            }))
+          );
+          await sendTransactionalEmail(
+            { email: authUser.user.email, name: profile?.full_name },
+            subject,
+            html
+          );
+        }
+      } else {
+        const items = Array.isArray(order.items) ? order.items : [];
+        const { subject, html } = orderConfirmationEmail(
+          profile?.full_name || '',
+          order.id,
+          String(order.total || '0'),
+          items.map((i: { name?: string; qty?: number; price?: number }) => ({
+            name: i.name || 'Article',
+            qty: i.qty || 1,
+            price: i.price || 0,
+          }))
+        );
+        await sendTransactionalEmail(
+          { email: customerEmail, name: profile?.full_name },
+          subject,
+          html
+        );
+      }
+    } catch (emailErr) {
+      console.error('[FIDEPAY WEBHOOK] Order email error:', emailErr);
     }
   }
 
