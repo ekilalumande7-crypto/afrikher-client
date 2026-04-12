@@ -11,6 +11,8 @@ import AccountSectionHeader from "@/components/account/AccountSectionHeader";
 export default function DashboardProfilPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [lastOrder, setLastOrder] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -36,6 +38,42 @@ export default function DashboardProfilPage() {
             profileData.full_name || user.user_metadata?.full_name || ""
           );
         }
+
+        // Fetch subscription — by user_id first, then by email
+        let sub = null;
+        const { data: subByUser } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (subByUser) {
+          sub = subByUser;
+        } else if (user.email) {
+          const { data: subByEmail } = await supabase
+            .from("subscriptions")
+            .select("*")
+            .eq("customer_email", user.email)
+            .maybeSingle();
+          if (subByEmail) {
+            sub = subByEmail;
+            // Link to user_id for future lookups
+            await supabase
+              .from("subscriptions")
+              .update({ user_id: user.id })
+              .eq("id", subByEmail.id);
+          }
+        }
+        setSubscription(sub);
+
+        // Fetch last order
+        const { data: orderData } = await supabase
+          .from("orders")
+          .select("*")
+          .or(`user_id.eq.${user.id},customer_email.eq.${user.email}`)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setLastOrder(orderData);
       }
     };
     fetchData();
@@ -163,35 +201,77 @@ export default function DashboardProfilPage() {
         <AccountCard
           eyebrow="Adhésion"
           title="Statut membre"
-          description="Votre accès et vos perspectives d’évolution, sans logique de pricing lourde."
+          description="Votre accès et vos perspectives d’évolution au sein de l’univers AFRIKHER."
           contentClassName="!space-y-0"
         >
-          <div className="border border-[#C9A84C]/18 bg-[#F5F0E8] p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#C9A84C]">
-                  Plan actuel
-                </p>
-                <h3 className="mt-3 font-display text-[2rem] leading-[1] tracking-[-0.02em] text-[#0A0A0A]">
-                  Gratuit
-                </h3>
-                <p className="mt-3 max-w-[24rem] font-body text-[0.94rem] leading-[1.72] text-[#0A0A0A]/58">
-                  Vous profitez actuellement d’un accès public aux contenus
-                  ouverts. Le passage à l’abonnement enrichit votre lecture et vos
-                  privilèges.
-                </p>
+          {subscription && subscription.status === "active" ? (
+            <div className="border border-[#C9A84C]/24 bg-[#0A0A0A] p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#C9A84C]">
+                    Abonnement actif
+                  </p>
+                  <h3 className="mt-3 font-display text-[2rem] leading-[1] tracking-[-0.02em] text-[#F5F0E8]">
+                    {subscription.plan === "annual" ? "Annuel" : "Mensuel"}
+                  </h3>
+                  {subscription.amount && (
+                    <p className="mt-2 font-body text-[1.1rem] font-semibold text-[#C9A84C]">
+                      {String(subscription.amount).replace(".", ",")} {subscription.currency || "EUR"} / {subscription.plan === "annual" ? "an" : "mois"}
+                    </p>
+                  )}
+                  <p className="mt-3 max-w-[24rem] font-body text-[0.94rem] leading-[1.72] text-[#F5F0E8]/58">
+                    Vous bénéficiez d’un accès complet aux contenus premium, au magazine et aux avantages réservés aux abonnés.
+                  </p>
+                  {subscription.current_period_end && (
+                    <p className="mt-2 font-body text-[0.8rem] text-[#F5F0E8]/40">
+                      Renouvellement le{" "}
+                      {new Date(subscription.current_period_end).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+                <CreditCard size={24} className="shrink-0 text-[#C9A84C]" />
               </div>
-              <CreditCard size={24} className="shrink-0 text-[#C9A84C]" />
-            </div>
 
-            <Link
-              href="/abonnement"
-              className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:text-[#C9A84C]"
-            >
-              Découvrir les offres
-              <ArrowRight size={14} />
-            </Link>
-          </div>
+              <Link
+                href="/dashboard/abonnement"
+                className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#C9A84C] transition-opacity hover:opacity-70"
+              >
+                Gérer mon abonnement
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <div className="border border-[#C9A84C]/18 bg-[#F5F0E8] p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#C9A84C]">
+                    Plan actuel
+                  </p>
+                  <h3 className="mt-3 font-display text-[2rem] leading-[1] tracking-[-0.02em] text-[#0A0A0A]">
+                    Gratuit
+                  </h3>
+                  <p className="mt-3 max-w-[24rem] font-body text-[0.94rem] leading-[1.72] text-[#0A0A0A]/58">
+                    Vous profitez actuellement d’un accès public aux contenus
+                    ouverts. Le passage à l’abonnement enrichit votre lecture et vos
+                    privilèges.
+                  </p>
+                </div>
+                <CreditCard size={24} className="shrink-0 text-[#C9A84C]" />
+              </div>
+
+              <Link
+                href="/abonnement"
+                className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:text-[#C9A84C]"
+              >
+                Découvrir les offres
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
         </AccountCard>
 
         <AccountCard
@@ -200,31 +280,76 @@ export default function DashboardProfilPage() {
           description="Un accès plus direct à vos achats et à votre univers éditorial."
           contentClassName="!space-y-0"
         >
-          <div className="border border-black/6 bg-white/45 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#8A6E2F]">
-                  Historique
-                </p>
-                <h3 className="mt-3 font-display text-[1.9rem] leading-[1] tracking-[-0.02em] text-[#0A0A0A]">
-                  Aucune commande
-                </h3>
-                <p className="mt-3 max-w-[24rem] font-body text-[0.94rem] leading-[1.72] text-[#0A0A0A]/58">
-                  Vous n’avez pas encore passé de commande. La boutique AFRIKHER
-                  reste accessible pour découvrir les sélections en cours.
-                </p>
+          {lastOrder ? (
+            <div className="border border-black/6 bg-white/45 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#8A6E2F]">
+                    Commande #{lastOrder.id?.slice(0, 8)}
+                  </p>
+                  <h3 className="mt-3 font-display text-[1.9rem] leading-[1] tracking-[-0.02em] text-[#0A0A0A]">
+                    {lastOrder.total ? `${String(lastOrder.total).replace(".", ",")} €` : "—"}
+                  </h3>
+                  <p className="mt-2 font-body text-[0.84rem] text-[#0A0A0A]/50">
+                    {new Date(lastOrder.created_at).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                    {" — "}
+                    <span className={
+                      lastOrder.status === "paid" || lastOrder.status === "delivered"
+                        ? "text-emerald-600"
+                        : lastOrder.status === "cancelled"
+                        ? "text-red-500"
+                        : "text-[#C9A84C]"
+                    }>
+                      {lastOrder.status === "pending" && "En attente"}
+                      {lastOrder.status === "paid" && "Payée"}
+                      {lastOrder.status === "shipped" && "Expédiée"}
+                      {lastOrder.status === "delivered" && "Livrée"}
+                      {lastOrder.status === "cancelled" && "Annulée"}
+                    </span>
+                  </p>
+                </div>
+                <Package size={24} className="shrink-0 text-[#C9A84C]" />
               </div>
-              <Package size={24} className="shrink-0 text-[#C9A84C]" />
-            </div>
 
-            <Link
-              href="/boutique"
-              className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:text-[#C9A84C]"
-            >
-              Visiter la boutique
-              <ArrowRight size={14} />
-            </Link>
-          </div>
+              <Link
+                href="/dashboard/commandes"
+                className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:text-[#C9A84C]"
+              >
+                Voir mes commandes
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <div className="border border-black/6 bg-white/45 p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-body text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[#8A6E2F]">
+                    Historique
+                  </p>
+                  <h3 className="mt-3 font-display text-[1.9rem] leading-[1] tracking-[-0.02em] text-[#0A0A0A]">
+                    Aucune commande
+                  </h3>
+                  <p className="mt-3 max-w-[24rem] font-body text-[0.94rem] leading-[1.72] text-[#0A0A0A]/58">
+                    Vous n’avez pas encore passé de commande. La boutique AFRIKHER
+                    reste accessible pour découvrir les sélections en cours.
+                  </p>
+                </div>
+                <Package size={24} className="shrink-0 text-[#C9A84C]" />
+              </div>
+
+              <Link
+                href="/boutique"
+                className="mt-6 inline-flex items-center gap-2 font-body text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A] transition-colors hover:text-[#C9A84C]"
+              >
+                Visiter la boutique
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
         </AccountCard>
       </div>
 
