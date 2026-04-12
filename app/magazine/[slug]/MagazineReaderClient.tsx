@@ -40,7 +40,8 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  // Client-side fallback: check purchase if server didn't detect session
+  // Client-side fallback: check magazine PURCHASE if server didn't detect session
+  // Magazines are PAID content — subscription alone does NOT grant access.
   useEffect(() => {
     if (serverHasAccess) { setClientHasAccess(true); return; }
     async function checkAccess() {
@@ -63,24 +64,16 @@ export default function MagazineReaderClient({ slug, hasAccess: serverHasAccess,
           .maybeSingle();
         if (purchaseByUser) { setClientHasAccess(true); return; }
 
-        // Check active subscription by user_id
-        const { data: subByUser } = await supabase
-          .from("subscriptions")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .maybeSingle();
-        if (subByUser) { setClientHasAccess(true); return; }
-
-        // Fallback by email
+        // Fallback: check purchase by email
         if (user.email) {
-          const { data: subByEmail } = await supabase
-            .from("subscriptions")
+          const { data: purchaseByEmail } = await supabase
+            .from("magazine_purchases")
             .select("id")
+            .eq("magazine_id", magazineId)
             .eq("customer_email", user.email)
-            .eq("status", "active")
+            .eq("payment_status", "completed")
             .maybeSingle();
-          if (subByEmail) { setClientHasAccess(true); return; }
+          if (purchaseByEmail) { setClientHasAccess(true); return; }
         }
       } catch { /* silent */ }
     }

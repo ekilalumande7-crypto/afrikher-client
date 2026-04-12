@@ -139,23 +139,42 @@ async function handleTransactionWebhook(transaction: {
         throw new Error('Magazine transaction missing item_id');
       }
 
+      // Get customer_email from auth or order for email-based fallback lookups
+      let customerEmail: string | null = null;
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(transaction.user_id);
+        customerEmail = authUser?.user?.email || null;
+      } catch { /* silent */ }
+      if (!customerEmail && transaction.order_id) {
+        const { data: orderRecord } = await supabase
+          .from('orders')
+          .select('customer_email')
+          .eq('id', transaction.order_id)
+          .maybeSingle();
+        customerEmail = orderRecord?.customer_email || null;
+      }
+
+      const purchasePayload: Record<string, unknown> = {
+        user_id: transaction.user_id,
+        magazine_id: transaction.item_id,
+        amount: transaction.amount,
+        currency: 'EUR',
+        payment_status: 'completed',
+        fidepay_payment_id: transaction.transaction_id,
+      };
+      if (customerEmail) {
+        purchasePayload.customer_email = customerEmail;
+      }
+
       const { error } = await supabase
         .from('magazine_purchases')
-        .upsert(
-          {
-            user_id: transaction.user_id,
-            magazine_id: transaction.item_id,
-            amount: transaction.amount,
-            currency: 'EUR',
-            payment_status: 'completed',
-            fidepay_payment_id: transaction.transaction_id,
-          },
-          { onConflict: 'user_id,magazine_id' }
-        );
+        .upsert(purchasePayload, { onConflict: 'user_id,magazine_id' });
 
       if (error) {
         throw new Error(`Magazine purchase upsert failed: ${error.message}`);
       }
+
+      console.log('[FIDEPAY WEBHOOK] Magazine purchase recorded:', transaction.item_id, 'user:', transaction.user_id, 'email:', customerEmail);
 
       if (transaction.order_id) {
         await supabase

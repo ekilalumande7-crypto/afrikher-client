@@ -196,15 +196,32 @@ export async function POST(request: Request) {
       amount: calculatedAmount,
     });
 
+    // For magazine purchases, redirect to the magazine page after payment
+    // so the user can immediately read the flipbook / download the PDF
+    let successUrl = `${siteUrl}/boutique/merci?order=${order.id}`;
+    let cancelUrl = `${siteUrl}/boutique`;
+
+    if (transactionType === 'magazine' && transactionItemId) {
+      const { data: magSlug } = await supabase
+        .from('magazines')
+        .select('slug')
+        .eq('id', transactionItemId)
+        .maybeSingle();
+      if (magSlug?.slug) {
+        successUrl = `${siteUrl}/magazine/${magSlug.slug}?paid=1`;
+        cancelUrl = `${siteUrl}/magazine/${magSlug.slug}`;
+      }
+    }
+
     try {
       const payment = await createPayment({
         amount: calculatedAmount,
         currency,
         transaction_id: transactionId,
-        description: `AFRIKHER Commande`,
+        description: transactionType === 'magazine' ? `AFRIKHER Magazine` : `AFRIKHER Commande`,
         ipn_url: `${siteUrl}/api/fidepay/webhook`,
-        success_url: `${siteUrl}/boutique/merci?order=${order.id}`,
-        cancel_url: `${siteUrl}/boutique`,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         customer_name: customer_name || '',
         customer_email: customer_email || '',
       });

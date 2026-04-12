@@ -39,44 +39,11 @@ export default async function MagazineDetailPage({
   }
 
   if (magazineId && (user?.id || userEmail)) {
-    let hasActiveSubscription = false;
-
-    // 1. Check active subscription by user_id, then fall back to customer_email
-    //    Accept status=active regardless of current_period_end (may be NULL)
-    if (user?.id) {
-      const { data: subscriptionByUser } = await supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      hasActiveSubscription = Boolean(subscriptionByUser);
-    }
-
-    if (!hasActiveSubscription && userEmail) {
-      const { data: subscriptionByEmail } = await supabase
-        .from("subscriptions")
-        .select("id, user_id")
-        .eq("customer_email", userEmail)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (subscriptionByEmail) {
-        hasActiveSubscription = true;
-        // Auto-link user_id for future lookups
-        if (!subscriptionByEmail.user_id && user?.id) {
-          await supabase
-            .from("subscriptions")
-            .update({ user_id: user.id })
-            .eq("id", subscriptionByEmail.id);
-        }
-      }
-    }
-
-    // 2. Check magazine purchase
+    // Magazines are PAID content — subscription alone does NOT grant access.
+    // Only a completed magazine_purchases record unlocks reading.
     let hasMagazinePurchase = false;
 
+    // Check by user_id first
     if (user?.id) {
       const { data: purchase } = await supabase
         .from("magazine_purchases")
@@ -89,8 +56,29 @@ export default async function MagazineDetailPage({
       hasMagazinePurchase = Boolean(purchase);
     }
 
-    // hasAccess = subscription active OR magazine purchased
-    hasAccess = hasActiveSubscription || hasMagazinePurchase;
+    // Fallback: check by customer_email
+    if (!hasMagazinePurchase && userEmail) {
+      const { data: purchaseByEmail } = await supabase
+        .from("magazine_purchases")
+        .select("id, user_id")
+        .eq("magazine_id", magazineId)
+        .eq("customer_email", userEmail)
+        .eq("payment_status", "completed")
+        .maybeSingle();
+
+      if (purchaseByEmail) {
+        hasMagazinePurchase = true;
+        // Auto-link user_id for future lookups
+        if (!purchaseByEmail.user_id && user?.id) {
+          await supabase
+            .from("magazine_purchases")
+            .update({ user_id: user.id })
+            .eq("id", purchaseByEmail.id);
+        }
+      }
+    }
+
+    hasAccess = hasMagazinePurchase;
   }
 
   return (
