@@ -85,25 +85,49 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create subscription record (linked to both user_id and email)
+    // Create or update subscription record (linked to both user_id and email)
+    // user_id has a UNIQUE constraint, so we upsert to handle existing inactive subscriptions
     const periodDays = plan === 'annual' ? 365 : 30;
-    const { data: subscription, error: subError } = await supabase
+    const subscriptionData = {
+      user_id: userId,
+      customer_email: userEmail,
+      plan,
+      status: 'trialing',
+      amount,
+      currency: 'EUR',
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString(),
+      cancelled_at: null,
+    };
+
+    // Try insert first, if unique constraint fails, update the existing row
+    let subscription: any = null;
+    let subError: any = null;
+
+    const insertResult = await supabase
       .from('subscriptions')
-      .insert({
-        user_id: userId,
-        customer_email: userEmail,
-        plan,
-        status: 'trialing',
-        amount,
-        currency: 'EUR',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString(),
-      })
+      .insert(subscriptionData)
       .select()
       .single();
 
+    if (insertResult.error) {
+      // Unique constraint violation — update the existing row instead
+      console.log('Insert failed (likely UNIQUE), trying update:', insertResult.error.code);
+      const updateResult = await supabase
+        .from('subscriptions')
+        .update(subscriptionData)
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      subscription = updateResult.data;
+      subError = updateResult.error;
+    } else {
+      subscription = insertResult.data;
+    }
+
     if (subError || !subscription) {
-      console.error('Subscription insert error:', subError);
+      console.error('Subscription upsert error:', subError);
       return NextResponse.json(
         { error: 'Failed to create subscription' },
         { status: 500 }
