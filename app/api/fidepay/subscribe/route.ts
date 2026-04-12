@@ -97,7 +97,6 @@ export async function POST(request: Request) {
       currency: 'EUR',
       current_period_start: new Date().toISOString(),
       current_period_end: new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString(),
-      cancelled_at: null,
     };
 
     // Try insert first, if unique constraint fails, update the existing row
