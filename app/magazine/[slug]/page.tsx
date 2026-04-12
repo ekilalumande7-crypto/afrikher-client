@@ -39,18 +39,16 @@ export default async function MagazineDetailPage({
   }
 
   if (magazineId && (user?.id || userEmail)) {
-    const now = new Date().toISOString();
-
     let hasActiveSubscription = false;
 
     // 1. Check active subscription by user_id, then fall back to customer_email
+    //    Accept status=active regardless of current_period_end (may be NULL)
     if (user?.id) {
       const { data: subscriptionByUser } = await supabase
         .from("subscriptions")
         .select("id")
         .eq("user_id", user.id)
         .eq("status", "active")
-        .gt("current_period_end", now)
         .maybeSingle();
 
       hasActiveSubscription = Boolean(subscriptionByUser);
@@ -59,13 +57,21 @@ export default async function MagazineDetailPage({
     if (!hasActiveSubscription && userEmail) {
       const { data: subscriptionByEmail } = await supabase
         .from("subscriptions")
-        .select("id")
+        .select("id, user_id")
         .eq("customer_email", userEmail)
         .eq("status", "active")
-        .gt("current_period_end", now)
         .maybeSingle();
 
-      hasActiveSubscription = Boolean(subscriptionByEmail);
+      if (subscriptionByEmail) {
+        hasActiveSubscription = true;
+        // Auto-link user_id for future lookups
+        if (!subscriptionByEmail.user_id && user?.id) {
+          await supabase
+            .from("subscriptions")
+            .update({ user_id: user.id })
+            .eq("id", subscriptionByEmail.id);
+        }
+      }
     }
 
     // 2. Check magazine purchase
