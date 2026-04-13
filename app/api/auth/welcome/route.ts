@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 });
     }
 
-    const { subject, html } = welcomeReaderEmail(name || '');
+    const { subject, html } = await welcomeReaderEmail(name || '');
 
     try {
       await sendTransactionalEmail({ email, name }, subject, html);

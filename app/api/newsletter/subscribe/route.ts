@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     // Send newsletter welcome email
     try {
-      const { subject, html } = newsletterWelcomeEmail(name || '');
+      const { subject, html } = await newsletterWelcomeEmail(name || '');
       await sendTransactionalEmail({ email, name }, subject, html);
     } catch (emailErr) {
       console.error('Newsletter welcome email error:', emailErr);

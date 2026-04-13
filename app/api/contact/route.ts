@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { sendTransactionalEmail } from '@/lib/brevo';
+import { contactConfirmationEmail } from '@/lib/email-templates';
 
 export async function POST(request: Request) {
   try {
@@ -38,26 +39,11 @@ export async function POST(request: Request) {
     }
 
     // Send confirmation email to user
-    const htmlContent = `
-      <html>
-        <body style="font-family: Arial, sans-serif; color: #333;">
-          <h2>Merci pour votre message</h2>
-          <p>Bonjour ${name},</p>
-          <p>Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.</p>
-          <p><strong>Votre message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
-          <p>Cordialement,<br/>L'équipe AFRIKHER</p>
-        </body>
-      </html>
-    `;
-
-    const brevoResponse = await sendTransactionalEmail(
-      { email, name },
-      'Confirmation de votre message - AFRIKHER',
-      htmlContent
-    );
-
-    if (!brevoResponse.ok) {
-      console.error('Brevo error:', await brevoResponse.text());
+    try {
+      const { subject: emailSubject, html } = await contactConfirmationEmail(name, subject || 'Contact');
+      await sendTransactionalEmail({ email, name }, emailSubject, html);
+    } catch (emailErr) {
+      console.error('Contact confirmation email error:', emailErr);
     }
 
     // Send notification to admin

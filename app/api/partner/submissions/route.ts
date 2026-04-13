@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     try {
       const partnerEmail = authResult.user?.email;
       if (partnerEmail) {
-        const { subject, html } = submissionReceivedEmail(
+        const { subject, html } = await submissionReceivedEmail(
           authResult.profile?.full_name || '',
           title
         );

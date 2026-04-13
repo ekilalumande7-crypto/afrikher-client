@@ -1,10 +1,63 @@
 // ══════════════════════════════════════════════
 // AFRIKHER — Email Templates (HTML)
 // All transactional emails use this shared styling
+// Templates can be customized via site_config keys:
+//   email_tpl_{type}_subject  → custom subject line
+//   email_tpl_{type}_body     → custom body text (plain text, auto-converted to HTML)
 // ══════════════════════════════════════════════
+
+import { getServiceRoleClient } from '@/lib/supabase';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://afrikher-client.vercel.app';
 
+// ── Cache for custom templates loaded from site_config ──
+let tplCache: Record<string, string> | null = null;
+let tplCacheTime = 0;
+const TPL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function loadCustomTemplates(): Promise<Record<string, string>> {
+  const now = Date.now();
+  if (tplCache && now - tplCacheTime < TPL_CACHE_TTL) return tplCache;
+
+  try {
+    const supabase = getServiceRoleClient();
+    const { data } = await supabase
+      .from('site_config')
+      .select('key, value')
+      .like('key', 'email_tpl_%');
+
+    const map: Record<string, string> = {};
+    data?.forEach((r: { key: string; value: string }) => {
+      if (r.value && r.value.trim()) map[r.key] = r.value.trim();
+    });
+
+    tplCache = map;
+    tplCacheTime = now;
+    return map;
+  } catch {
+    return tplCache || {};
+  }
+}
+
+function getCustom(templates: Record<string, string>, type: string, field: 'subject' | 'body'): string | null {
+  const val = templates[`email_tpl_${type}_${field}`];
+  return val && val.trim() ? val.trim() : null;
+}
+
+// ── Convert plain text body to HTML paragraphs ──
+function textToHtml(text: string, vars: Record<string, string>): string {
+  let result = text;
+  for (const [key, value] of Object.entries(vars)) {
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+  }
+  return result
+    .split('\n\n')
+    .filter(Boolean)
+    .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('\n    ');
+}
+
+// ── Layout wrapper ──
 function layout(content: string): string {
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -28,7 +81,7 @@ function layout(content: string): string {
   <tr><td style="padding-top:40px;padding-bottom:24px"><div style="height:1px;background:linear-gradient(90deg,transparent,#C9A84C33,transparent)"></div></td></tr>
   <!-- Footer -->
   <tr><td style="text-align:center;font-size:11px;color:#F5F0E8;opacity:0.3;line-height:1.6">
-    AFRIKHER Magazine — L'elegance hors du commun.<br>
+    AFRIKHER Magazine — L'élégance hors du commun.<br>
     <a href="${SITE_URL}" style="color:#C9A84C;opacity:0.5;text-decoration:none">afrikher.com</a>
   </td></tr>
 </table>
@@ -55,15 +108,27 @@ function subtle(text: string): string {
 // ══════════════════════════════════════════════
 // 1. WELCOME READER
 // ══════════════════════════════════════════════
-export function welcomeReaderEmail(name: string): { subject: string; html: string } {
+export async function welcomeReaderEmail(name: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'welcome', 'subject');
+  const customBody = getCustom(tpls, 'welcome', 'body');
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || 'chère lectrice' });
+    return {
+      subject: customSubject || 'Bienvenue sur AFRIKHER',
+      html: layout(`${bodyHtml}${button('Découvrir le magazine', SITE_URL + '/magazine')}`),
+    };
+  }
+
   return {
-    subject: 'Bienvenue sur AFRIKHER',
+    subject: customSubject || 'Bienvenue sur AFRIKHER',
     html: layout(`
-      ${heading('Bienvenue, ' + (name || 'chere lectrice') + '.')}
-      <p>Nous sommes ravies de vous accueillir dans l'univers AFRIKHER — le magazine premium dedie au business et au leadership feminin africain.</p>
-      <p>Votre compte est maintenant actif. Vous pouvez decouvrir nos contenus editoriaux, parcourir notre boutique et rejoindre notre communaute.</p>
-      ${button('Decouvrir le magazine', SITE_URL + '/magazine')}
-      ${subtle('A bientot dans nos pages.')}
+      ${heading('Bienvenue, ' + (name || 'chère lectrice') + '.')}
+      <p>Nous sommes ravies de vous accueillir dans l'univers AFRIKHER — le magazine premium dédié au business et au leadership féminin africain.</p>
+      <p>Votre compte est maintenant actif. Vous pouvez découvrir nos contenus éditoriaux, parcourir notre boutique et rejoindre notre communauté.</p>
+      ${button('Découvrir le magazine', SITE_URL + '/magazine')}
+      ${subtle('À bientôt dans nos pages.')}
     `),
   };
 }
@@ -71,12 +136,16 @@ export function welcomeReaderEmail(name: string): { subject: string; html: strin
 // ══════════════════════════════════════════════
 // 2. ORDER CONFIRMATION
 // ══════════════════════════════════════════════
-export function orderConfirmationEmail(
+export async function orderConfirmationEmail(
   name: string,
   orderId: string,
   total: string,
   items: { name: string; qty: number; price: number }[]
-): { subject: string; html: string } {
+): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'order', 'subject');
+  const customBody = getCustom(tpls, 'order', 'body');
+
   const itemsHtml = items
     .map(
       (i) =>
@@ -84,18 +153,35 @@ export function orderConfirmationEmail(
     )
     .join('');
 
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, {
+      nom: name || '',
+      reference: orderId.slice(0, 8).toUpperCase(),
+      total,
+    });
+    return {
+      subject: customSubject || 'Confirmation de votre commande — AFRIKHER',
+      html: layout(`${bodyHtml}
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-top:1px solid #F5F0E820">
+          ${itemsHtml}
+          <tr><td style="padding:12px 0;color:#F5F0E8;font-size:15px;font-weight:600">Total</td><td style="padding:12px 0;color:#C9A84C;font-size:15px;font-weight:600;text-align:right">${total} EUR</td></tr>
+        </table>
+        ${button('Voir mes commandes', SITE_URL + '/dashboard/commandes')}`),
+    };
+  }
+
   return {
-    subject: 'Confirmation de votre commande — AFRIKHER',
+    subject: customSubject || 'Confirmation de votre commande — AFRIKHER',
     html: layout(`
-      ${heading('Commande confirmee')}
-      <p>Merci ${name || ''} pour votre commande. Votre paiement a ete recu avec succes.</p>
+      ${heading('Commande confirmée')}
+      <p>Merci ${name || ''} pour votre commande. Votre paiement a été reçu avec succès.</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-top:1px solid #F5F0E820">
         ${itemsHtml}
         <tr><td style="padding:12px 0;color:#F5F0E8;font-size:15px;font-weight:600">Total</td><td style="padding:12px 0;color:#C9A84C;font-size:15px;font-weight:600;text-align:right">${total} EUR</td></tr>
       </table>
-      <p style="font-size:13px;opacity:0.6">Reference : ${orderId.slice(0, 8).toUpperCase()}</p>
+      <p style="font-size:13px;opacity:0.6">Référence : ${orderId.slice(0, 8).toUpperCase()}</p>
       ${button('Voir mes commandes', SITE_URL + '/dashboard/commandes')}
-      ${subtle('Vous recevrez un email quand votre commande sera expediee.')}
+      ${subtle('Vous recevrez un email quand votre commande sera expédiée.')}
     `),
   };
 }
@@ -103,15 +189,60 @@ export function orderConfirmationEmail(
 // ══════════════════════════════════════════════
 // 3. SUBSCRIPTION CONFIRMED
 // ══════════════════════════════════════════════
-export function subscriptionConfirmedEmail(name: string, plan: string): { subject: string; html: string } {
+export async function subscriptionConfirmedEmail(name: string, plan: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'subscription', 'subject');
+  const customBody = getCustom(tpls, 'subscription', 'body');
+
+  const planLabel = plan === 'annual' ? 'annuel' : 'mensuel';
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || '', plan: planLabel });
+    return {
+      subject: customSubject || 'Abonnement activé — AFRIKHER',
+      html: layout(`${bodyHtml}${button('Accéder à mes contenus', SITE_URL + '/magazine')}`),
+    };
+  }
+
   return {
-    subject: 'Abonnement active — AFRIKHER',
+    subject: customSubject || 'Abonnement activé — AFRIKHER',
     html: layout(`
       ${heading('Votre abonnement est actif')}
-      <p>Felicitations ${name || ''} ! Votre abonnement AFRIKHER (${plan === 'annual' ? 'annuel' : 'mensuel'}) est maintenant actif.</p>
-      <p>Vous avez desormais acces a l'integralite de nos contenus premium : articles editoriaux, interviews exclusives, dossiers et bien plus.</p>
-      ${button('Acceder a mes contenus', SITE_URL + '/magazine')}
-      ${subtle('Gerez votre abonnement depuis votre espace membre.')}
+      <p>Félicitations ${name || ''} ! Votre abonnement AFRIKHER (${planLabel}) est maintenant actif.</p>
+      <p>Vous avez désormais accès à l'intégralité de nos contenus premium : articles éditoriaux, interviews exclusives, dossiers et bien plus.</p>
+      ${button('Accéder à mes contenus', SITE_URL + '/magazine')}
+      ${subtle('Gérez votre abonnement depuis votre espace membre.')}
+    `),
+  };
+}
+
+// ══════════════════════════════════════════════
+// 3b. SUBSCRIPTION CANCELLED
+// ══════════════════════════════════════════════
+export async function subscriptionCancelledEmail(name: string, plan: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'subscription_cancel', 'subject');
+  const customBody = getCustom(tpls, 'subscription_cancel', 'body');
+
+  const planLabel = plan === 'annual' ? 'annuel' : 'mensuel';
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || '', plan: planLabel });
+    return {
+      subject: customSubject || 'Votre abonnement AFRIKHER a été désactivé',
+      html: layout(`${bodyHtml}${button('Réactiver mon abonnement', SITE_URL + '/abonnement')}`),
+    };
+  }
+
+  return {
+    subject: customSubject || 'Votre abonnement AFRIKHER a été désactivé',
+    html: layout(`
+      ${heading('Abonnement désactivé')}
+      <p>${name || 'Cher(e) abonné(e)'}, votre abonnement AFRIKHER (${planLabel}) a été désactivé.</p>
+      <p>Vous conservez l'accès à vos contenus jusqu'à la fin de votre période en cours. Après cette date, l'accès aux contenus premium sera suspendu.</p>
+      <p>Vous pouvez réactiver votre abonnement à tout moment depuis votre espace membre.</p>
+      ${button('Réactiver mon abonnement', SITE_URL + '/abonnement')}
+      ${subtle('Nous espérons vous revoir bientôt.')}
     `),
   };
 }
@@ -119,15 +250,27 @@ export function subscriptionConfirmedEmail(name: string, plan: string): { subjec
 // ══════════════════════════════════════════════
 // 4. SUBMISSION RECEIVED (partner)
 // ══════════════════════════════════════════════
-export function submissionReceivedEmail(name: string, title: string): { subject: string; html: string } {
+export async function submissionReceivedEmail(name: string, title: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'submission', 'subject');
+  const customBody = getCustom(tpls, 'submission', 'body');
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || 'cher partenaire', titre: title });
+    return {
+      subject: customSubject || 'Soumission reçue — AFRIKHER',
+      html: layout(`${bodyHtml}${button('Suivre mes soumissions', SITE_URL + '/partner/contenus')}`),
+    };
+  }
+
   return {
-    subject: 'Soumission recue — AFRIKHER',
+    subject: customSubject || 'Soumission reçue — AFRIKHER',
     html: layout(`
-      ${heading('Votre contenu a ete recu')}
-      <p>Merci ${name || 'cher partenaire'}. Votre soumission « ${title} » a bien ete enregistree.</p>
-      <p>Notre equipe editoriale va l'examiner dans les meilleurs delais. Vous recevrez une notification des que le statut sera mis a jour.</p>
+      ${heading('Votre contenu a été reçu')}
+      <p>Merci ${name || 'cher partenaire'}. Votre soumission « ${title} » a bien été enregistrée.</p>
+      <p>Notre équipe éditoriale va l'examiner dans les meilleurs délais. Vous recevrez une notification dès que le statut sera mis à jour.</p>
       ${button('Suivre mes soumissions', SITE_URL + '/partner/contenus')}
-      ${subtle('Delai de traitement habituel : 48 a 72 heures.')}
+      ${subtle('Délai de traitement habituel : 48 à 72 heures.')}
     `),
   };
 }
@@ -135,35 +278,93 @@ export function submissionReceivedEmail(name: string, title: string): { subject:
 // ══════════════════════════════════════════════
 // 5. NEWSLETTER WELCOME
 // ══════════════════════════════════════════════
-export function newsletterWelcomeEmail(name: string): { subject: string; html: string } {
+export async function newsletterWelcomeEmail(name: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'newsletter', 'subject');
+  const customBody = getCustom(tpls, 'newsletter', 'body');
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || '' });
+    return {
+      subject: customSubject || 'Bienvenue dans la newsletter AFRIKHER',
+      html: layout(`${bodyHtml}${button('Découvrir nos articles', SITE_URL + '/rubriques')}`),
+    };
+  }
+
   return {
-    subject: 'Bienvenue dans la newsletter AFRIKHER',
+    subject: customSubject || 'Bienvenue dans la newsletter AFRIKHER',
     html: layout(`
-      ${heading('Vous etes inscrit(e)')}
-      <p>${name ? 'Cher(e) ' + name + ', merci' : 'Merci'} de rejoindre la communaute AFRIKHER.</p>
-      <p>Vous recevrez nos meilleurs contenus, nos analyses et nos decouvertes directement dans votre boite mail.</p>
-      ${button('Decouvrir nos articles', SITE_URL + '/rubriques')}
-      ${subtle('Vous pouvez vous desabonner a tout moment.')}
+      ${heading('Vous êtes inscrit(e)')}
+      <p>${name ? 'Cher(e) ' + name + ', merci' : 'Merci'} de rejoindre la communauté AFRIKHER.</p>
+      <p>Vous recevrez nos meilleurs contenus, nos analyses et nos découvertes directement dans votre boîte mail.</p>
+      ${button('Découvrir nos articles', SITE_URL + '/rubriques')}
+      ${subtle('Vous pouvez vous désabonner à tout moment.')}
     `),
   };
 }
 
-export function magazinePurchaseEmail(
+// ══════════════════════════════════════════════
+// 6. CONTACT FORM CONFIRMATION
+// ══════════════════════════════════════════════
+export async function contactConfirmationEmail(name: string, subject: string): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'contact', 'subject');
+  const customBody = getCustom(tpls, 'contact', 'body');
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, { nom: name || '', sujet: subject });
+    return {
+      subject: customSubject || 'Nous avons bien reçu votre message — AFRIKHER',
+      html: layout(`${bodyHtml}`),
+    };
+  }
+
+  return {
+    subject: customSubject || 'Nous avons bien reçu votre message — AFRIKHER',
+    html: layout(`
+      ${heading('Message reçu')}
+      <p>${name || ''}, nous avons bien reçu votre message concernant « ${subject} ».</p>
+      <p>Notre équipe vous répondra dans les meilleurs délais, généralement sous 24 à 48 heures.</p>
+      ${subtle('Merci pour votre intérêt envers AFRIKHER.')}
+    `),
+  };
+}
+
+// ══════════════════════════════════════════════
+// 7. MAGAZINE PURCHASE
+// ══════════════════════════════════════════════
+export async function magazinePurchaseEmail(
   name: string,
   magazineTitle: string,
   magazineSlug: string,
   pdfUrl: string | null
-): { subject: string; html: string } {
+): Promise<{ subject: string; html: string }> {
+  const tpls = await loadCustomTemplates();
+  const customSubject = getCustom(tpls, 'magazine_purchase', 'subject');
+  const customBody = getCustom(tpls, 'magazine_purchase', 'body');
+
   const readUrl = `${SITE_URL}/magazine/${magazineSlug}`;
+
+  if (customBody) {
+    const bodyHtml = textToHtml(customBody, {
+      nom: name || '',
+      titre_magazine: magazineTitle,
+    });
+    return {
+      subject: customSubject || `Votre magazine AFRIKHER est prêt : ${magazineTitle}`,
+      html: layout(`${bodyHtml}${button('Lire le magazine', readUrl)}${pdfUrl ? `<p style="margin-top:16px;text-align:center;"><a href="${pdfUrl}" style="color:#C9A84C;text-decoration:underline;font-size:14px;">Télécharger le PDF</a></p>` : ''}`),
+    };
+  }
+
   return {
-    subject: `Votre magazine AFRIKHER est pret : ${magazineTitle}`,
+    subject: customSubject || `Votre magazine AFRIKHER est prêt : ${magazineTitle}`,
     html: layout(`
-      ${heading('Achat confirme')}
+      ${heading('Achat confirmé')}
       <p>${name ? 'Cher(e) ' + name + ',' : ''} merci pour votre achat.</p>
-      <p>Votre exemplaire de <strong>${magazineTitle}</strong> est desormais accessible dans votre espace AFRIKHER.</p>
+      <p>Votre exemplaire de <strong>${magazineTitle}</strong> est désormais accessible dans votre espace AFRIKHER.</p>
       ${button('Lire le magazine', readUrl)}
-      ${pdfUrl ? `<p style="margin-top:16px;text-align:center;"><a href="${pdfUrl}" style="color:#C9A84C;text-decoration:underline;font-size:14px;">Telecharger le PDF</a></p>` : ''}
-      ${subtle('Cet achat est definitif. Vous pouvez relire votre magazine a tout moment depuis votre compte.')}
+      ${pdfUrl ? `<p style="margin-top:16px;text-align:center;"><a href="${pdfUrl}" style="color:#C9A84C;text-decoration:underline;font-size:14px;">Télécharger le PDF</a></p>` : ''}
+      ${subtle('Cet achat est définitif. Vous pouvez relire votre magazine à tout moment depuis votre compte.')}
     `),
   };
 }

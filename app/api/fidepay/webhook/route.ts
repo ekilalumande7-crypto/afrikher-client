@@ -121,7 +121,7 @@ async function handleTransactionWebhook(transaction: {
         console.log('[FIDEPAY WEBHOOK] Subscription email — user:', transaction.user_id, 'email:', recipientEmail, 'plan:', actualPlan);
 
         if (recipientEmail) {
-          const { subject, html } = subscriptionConfirmedEmail(
+          const { subject, html } = await subscriptionConfirmedEmail(
             profile?.full_name || '',
             actualPlan
           );
@@ -192,7 +192,7 @@ async function handleTransactionWebhook(transaction: {
 
         const recipientEmail = customerEmail;
         if (recipientEmail && magInfo) {
-          const { subject, html } = magazinePurchaseEmail(
+          const { subject, html } = await magazinePurchaseEmail(
             profile?.full_name || '',
             magInfo.title || 'Magazine AFRIKHER',
             magInfo.slug || '',
@@ -342,7 +342,7 @@ async function handleLegacyOrderWebhook(webhookData: {
         const { data: authUser } = await supabase.auth.admin.getUserById(order.user_id);
         if (authUser?.user?.email) {
           const items = Array.isArray(order.items) ? order.items : [];
-          const { subject, html } = orderConfirmationEmail(
+          const { subject, html } = await orderConfirmationEmail(
             profile?.full_name || '',
             order.id,
             String(order.total || '0'),
@@ -360,7 +360,7 @@ async function handleLegacyOrderWebhook(webhookData: {
         }
       } else {
         const items = Array.isArray(order.items) ? order.items : [];
-        const { subject, html } = orderConfirmationEmail(
+        const { subject, html } = await orderConfirmationEmail(
           profile?.full_name || '',
           order.id,
           String(order.total || '0'),
