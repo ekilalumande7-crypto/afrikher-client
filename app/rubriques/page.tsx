@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Clock, Play, Search } from "lucide-react";
+import { ArrowRight, Clock, Play, Search, Camera, Video as VideoIcon, BookOpen } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+
+/* ─── Types ─── */
+interface ChapterItem {
+  id: string;
+  titre: string;
+  description: string;
+  image: string;
+  link: string;
+  ordre: number;
+}
 
 interface ContentItem {
   id: string;
@@ -40,15 +50,9 @@ interface SiteConfig {
   [key: string]: string;
 }
 
-type ActiveTab = "articles" | "gallery" | "photos" | "videos";
+type ActiveTab = "chapitres" | "articles" | "photos" | "videos";
 
-const CONTENT_TABS: Array<{ label: string; value: ActiveTab }> = [
-  { label: "Articles", value: "articles" },
-  { label: "Galerie", value: "gallery" },
-  { label: "Photos", value: "photos" },
-  { label: "Vidéos", value: "videos" },
-];
-
+/* ─── Helpers ─── */
 function extractYouTubeId(url: string) {
   const match = url.match(
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
@@ -58,19 +62,33 @@ function extractYouTubeId(url: string) {
 
 function getVideoThumbnail(url: string, fallback = "") {
   const ytId = extractYouTubeId(url);
-  if (ytId) {
-    return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
-  }
+  if (ytId) return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
   return fallback;
 }
 
+const formatDate = (d: string | null) => {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const readTime = (text: string) => {
+  const words = text.split(/\s+/).length;
+  return `${Math.max(2, Math.ceil(words / 200))} min`;
+};
+
+/* ─── Main ─── */
 export default function RubriquesPage() {
   const [loading, setLoading] = useState(true);
+  const [chapters, setChapters] = useState<ChapterItem[]>([]);
   const [allContent, setAllContent] = useState<ContentItem[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({});
-  const [activeTab, setActiveTab] = useState<ActiveTab>("articles");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("chapitres");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -101,12 +119,36 @@ export default function RubriquesPage() {
             .order("sort_order", { ascending: true }),
         ]);
 
+        /* Config map */
         const config: SiteConfig = {};
         (configRes.data || []).forEach((row: { key: string; value: string }) => {
           config[row.key] = row.value || "";
         });
         setSiteConfig(config);
 
+        /* Chapters from site_config */
+        let parsedChapters: ChapterItem[] = [];
+        try {
+          const raw = config.rubriques_chapitres ? JSON.parse(config.rubriques_chapitres) : [];
+          if (Array.isArray(raw)) {
+            parsedChapters = raw
+              .filter((c: any) => c && typeof c === "object" && c.titre)
+              .map((c: any, i: number) => ({
+                id: String(c.id || `ch-${i}`),
+                titre: c.titre || "",
+                description: c.description || "",
+                image: c.image || "",
+                link: c.link || "",
+                ordre: Number.isFinite(c.ordre) ? c.ordre : i,
+              }))
+              .sort((a: ChapterItem, b: ChapterItem) => a.ordre - b.ordre);
+          }
+        } catch {
+          parsedChapters = [];
+        }
+        setChapters(parsedChapters);
+
+        /* Articles */
         const editorialItems: ContentItem[] = (articlesRes.data || []).map((a: any) => ({
           id: a.id,
           title: a.title,
@@ -133,38 +175,27 @@ export default function RubriquesPage() {
 
         const combined = [...editorialItems, ...blogItems].sort(
           (a, b) =>
-            new Date(b.published_at || 0).getTime() -
-            new Date(a.published_at || 0).getTime()
+            new Date(b.published_at || 0).getTime() - new Date(a.published_at || 0).getTime()
         );
         setAllContent(combined);
 
+        /* Photos */
         let parsedPhotos: PhotoItem[] = [];
         try {
           const rawPhotos = config.rubriques_galerie ? JSON.parse(config.rubriques_galerie) : [];
           if (Array.isArray(rawPhotos) && rawPhotos.length > 0) {
             parsedPhotos = rawPhotos
-              .filter(
-                (item) =>
-                  item &&
-                  typeof item === "object" &&
-                  (item.url || item.image_url)
-              )
+              .filter((item: any) => item && typeof item === "object" && (item.url || item.image_url))
               .map((item: any, index: number) => ({
                 id: String(item.id || `photo-${index}`),
-                title:
-                  item.title || item.titre || item.legende || item.caption || "",
-                description:
-                  item.description || item.legende || item.caption || "",
+                title: item.title || item.titre || item.legende || item.caption || "",
+                description: item.description || item.legende || item.caption || "",
                 image_url: item.url || item.image_url,
                 category: item.category || "",
                 featured: Boolean(item.featured),
-                sort_order: Number.isFinite(item.ordre)
-                  ? item.ordre
-                  : Number.isFinite(item.sort_order)
-                    ? item.sort_order
-                    : index,
+                sort_order: Number.isFinite(item.ordre) ? item.ordre : Number.isFinite(item.sort_order) ? item.sort_order : index,
               }))
-              .sort((a, b) => a.sort_order - b.sort_order);
+              .sort((a: PhotoItem, b: PhotoItem) => a.sort_order - b.sort_order);
           } else {
             parsedPhotos = (galleryRes.data || [])
               .filter((item: any) => Boolean(item.image_url))
@@ -177,7 +208,7 @@ export default function RubriquesPage() {
                 featured: Boolean(item.featured),
                 sort_order: Number.isFinite(item.sort_order) ? item.sort_order : index,
               }))
-              .sort((a, b) => a.sort_order - b.sort_order);
+              .sort((a: PhotoItem, b: PhotoItem) => a.sort_order - b.sort_order);
           }
         } catch {
           parsedPhotos = (galleryRes.data || [])
@@ -191,19 +222,20 @@ export default function RubriquesPage() {
               featured: Boolean(item.featured),
               sort_order: Number.isFinite(item.sort_order) ? item.sort_order : index,
             }))
-            .sort((a, b) => a.sort_order - b.sort_order);
+            .sort((a: PhotoItem, b: PhotoItem) => a.sort_order - b.sort_order);
         }
         setPhotos(parsedPhotos);
 
+        /* Videos */
         let parsedVideos: VideoItem[] = [];
         try {
           const rawVideos = config.rubriques_videos ? JSON.parse(config.rubriques_videos) : [];
           if (Array.isArray(rawVideos)) {
             parsedVideos = rawVideos
-              .filter((item) => item && typeof item === "object" && item.url)
+              .filter((item: any) => item && typeof item === "object" && item.url)
               .map((item: any, index: number) => ({
                 id: String(item.id || `video-${index}`),
-                title: item.title || item.titre || "Vidéo AFRIKHER",
+                title: item.title || item.titre || "Video AFRIKHER",
                 description: item.description || "",
                 url: item.url,
                 thumbnail: item.thumbnail || item.image || getVideoThumbnail(item.url, ""),
@@ -213,6 +245,15 @@ export default function RubriquesPage() {
           parsedVideos = [];
         }
         setVideos(parsedVideos);
+
+        /* Default to first tab that has content */
+        if (parsedChapters.length > 0) {
+          // chapters is default
+        } else if (combined.length > 0) {
+          setActiveTab("articles");
+        } else if (parsedPhotos.length > 0) {
+          setActiveTab("photos");
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -222,6 +263,7 @@ export default function RubriquesPage() {
     fetchData();
   }, []);
 
+  /* ─── Search & Filters ─── */
   const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const filteredArticles = allContent.filter((item) => {
@@ -237,8 +279,7 @@ export default function RubriquesPage() {
     if (!normalizedSearch) return true;
     return (
       (item.title || "").toLowerCase().includes(normalizedSearch) ||
-      (item.description || "").toLowerCase().includes(normalizedSearch) ||
-      (item.category || "").toLowerCase().includes(normalizedSearch)
+      (item.description || "").toLowerCase().includes(normalizedSearch)
     );
   });
 
@@ -250,57 +291,89 @@ export default function RubriquesPage() {
     );
   });
 
-  const galleryItems = [
-    ...filteredPhotos.map((item) => ({ ...item, mediaType: "photo" as const })),
-    ...filteredVideos.map((item) => ({ ...item, mediaType: "video" as const })),
+  const tabCounts: Record<ActiveTab, number> = {
+    chapitres: chapters.length,
+    articles: filteredArticles.length,
+    photos: filteredPhotos.length,
+    videos: filteredVideos.length,
+  };
+
+  const CONTENT_TABS: Array<{ label: string; value: ActiveTab; icon: any }> = [
+    { label: "Chapitres", value: "chapitres", icon: BookOpen },
+    { label: "Articles", value: "articles", icon: BookOpen },
+    { label: "Photos", value: "photos", icon: Camera },
+    { label: "Videos", value: "videos", icon: VideoIcon },
   ];
 
-  const articleSuggestions =
-    activeTab === "articles" && normalizedSearch && filteredArticles.length < 3
-      ? allContent
-          .filter((item) => !filteredArticles.some((filteredItem) => filteredItem.id === item.id))
-          .slice(0, Math.max(0, 3 - filteredArticles.length))
-      : [];
-
-  const activeCount =
-    activeTab === "articles"
-      ? filteredArticles.length
-      : activeTab === "gallery"
-        ? galleryItems.length
-        : activeTab === "photos"
-          ? filteredPhotos.length
-          : filteredVideos.length;
-
-  const getItemHref = (item: ContentItem) => `/rubriques/${item.slug}`;
-
-  const formatDate = (d: string | null) => {
-    if (!d) return "";
-    return new Date(d).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const readTime = (text: string) => {
-    const words = text.split(/\s+/).length;
-    return `${Math.max(2, Math.ceil(words / 200))} min`;
-  };
+  /* Only show tabs that have content */
+  const visibleTabs = CONTENT_TABS.filter((tab) => tabCounts[tab.value] > 0);
 
   const editorialImage = siteConfig.rubriques_editorial_image || "";
   const editorialCitation = siteConfig.rubriques_editorial_citation || "";
   const editorialTexte =
     siteConfig.rubriques_editorial_texte ||
-    "Une sélection pensée comme une traversée éditoriale : articles, images et vidéos qui donnent du relief à l’univers AFRIKHER.";
+    "AFRIKHER porte la vision d'une Afrique ou les femmes ne sont plus seulement les gardiennes de traditions, mais les architectes d'un avenir puissant, creatif et prospere.";
 
-  const renderArticleCard = (item: ContentItem, compact = false) => (
-    <Link
-      key={item.id}
-      href={getItemHref(item)}
-      className="group block h-full no-underline"
-    >
+  const getItemHref = (item: ContentItem) => `/rubriques/${item.slug}`;
+
+  /* ─── Render Functions ─── */
+
+  const renderChapterCard = (chapter: ChapterItem, index: number) => {
+    const href = chapter.link || "#";
+    const isInternal = href.startsWith("/");
+
+    return (
+      <Link
+        key={chapter.id}
+        href={href}
+        {...(!isInternal ? { target: "_blank", rel: "noreferrer" } : {})}
+        className="group block no-underline"
+      >
+        <article className="relative overflow-hidden rounded-2xl bg-[#0A0A0A]">
+          {/* Image */}
+          <div className="aspect-[3/4] sm:aspect-[4/5] overflow-hidden">
+            {chapter.image ? (
+              <img
+                src={chapter.image}
+                alt={chapter.titre}
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#1A1A1A]">
+                <span className="font-display text-3xl text-[#C9A84C]/20">{index + 1}</span>
+              </div>
+            )}
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          </div>
+
+          {/* Content overlay */}
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+            <span className="mb-2 inline-block font-body text-[0.58rem] font-semibold uppercase tracking-[0.28em] text-[#C9A84C]">
+              Chapitre {index + 1}
+            </span>
+            <h3 className="font-display text-[1.5rem] leading-[1.08] tracking-[-0.01em] text-white sm:text-[1.75rem]">
+              {chapter.titre}
+            </h3>
+            {chapter.description && (
+              <p className="mt-2 line-clamp-3 font-body text-[0.82rem] leading-[1.6] text-white/65">
+                {chapter.description}
+              </p>
+            )}
+            <span className="mt-4 inline-flex items-center gap-2 font-body text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#C9A84C] transition-colors duration-300 group-hover:text-[#E8C97A]">
+              Explorer
+              <ArrowRight size={12} />
+            </span>
+          </div>
+        </article>
+      </Link>
+    );
+  };
+
+  const renderArticleCard = (item: ContentItem) => (
+    <Link key={item.id} href={getItemHref(item)} className="group block h-full no-underline">
       <article className="flex h-full flex-col">
-        <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+        <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-[#2A2A2A]">
           {item.cover_image ? (
             <img
               src={item.cover_image}
@@ -313,47 +386,24 @@ export default function RubriquesPage() {
             </div>
           )}
         </div>
-
         <div className="flex flex-1 flex-col pt-4">
-          <div className="mb-2 flex items-center gap-2">
-            {item.category && (
-              <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
-                {item.category}
-              </span>
-            )}
-          </div>
-
-          <div className={compact ? "min-h-[5.4rem]" : "min-h-[6.5rem]"}>
-            <h3
-              className={`line-clamp-3 font-display tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C] ${
-                compact
-                  ? "text-[1.55rem] leading-[1.14]"
-                  : "text-[1.9rem] leading-[1.08]"
-              }`}
-            >
-              {item.title}
-            </h3>
-          </div>
-
-          <div className={compact ? "min-h-[4.2rem]" : "min-h-[5.75rem]"}>
-            <p
-              className={`mt-3 font-body text-[#0A0A0A]/56 ${
-                compact
-                  ? "line-clamp-2 text-[0.9rem] leading-[1.7]"
-                  : "line-clamp-3 text-[0.94rem] leading-[1.8]"
-              }`}
-            >
-              {item.excerpt}
-            </p>
-          </div>
-
-          <div className="mt-auto pt-5">
-            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-              Lire l&apos;article
-              <ArrowRight size={13} />
+          {item.category && (
+            <span className="mb-2 font-body text-[0.6rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+              {item.category}
             </span>
-
-            <div className="flex items-center gap-3 pt-4 font-body text-[0.74rem] text-[#8D877C]">
+          )}
+          <h3 className="line-clamp-3 font-display text-[1.6rem] leading-[1.1] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+            {item.title}
+          </h3>
+          <p className="mt-2.5 line-clamp-2 font-body text-[0.88rem] leading-[1.7] text-[#0A0A0A]/55">
+            {item.excerpt}
+          </p>
+          <div className="mt-auto pt-4">
+            <span className="inline-flex items-center gap-2 font-body text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/65 transition-colors duration-300 group-hover:text-[#C9A84C]">
+              Lire l&apos;article
+              <ArrowRight size={12} />
+            </span>
+            <div className="flex items-center gap-3 pt-3 font-body text-[0.72rem] text-[#8D877C]">
               {item.published_at && <span>{formatDate(item.published_at)}</span>}
               <span className="flex items-center gap-1">
                 <Clock size={11} />
@@ -372,47 +422,28 @@ export default function RubriquesPage() {
       href={item.image_url}
       target="_blank"
       rel="noreferrer"
-      className="group block h-full no-underline"
+      className="group block no-underline"
     >
-      <article className="flex h-full flex-col">
-        <div className="aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+      <article>
+        <div className="aspect-[4/3] overflow-hidden rounded-2xl bg-[#2A2A2A]">
           <img
             src={item.image_url}
             alt={item.title || "Photo AFRIKHER"}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         </div>
-
-        <div className="flex flex-1 flex-col pt-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
-              Photo
-            </span>
-            {item.category && (
-              <span className="font-body text-[0.62rem] uppercase tracking-[0.18em] text-[#8D877C]">
-                {item.category}
-              </span>
-            )}
-          </div>
-
-          <div className="min-h-[4.3rem]">
-            <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-              {item.title || "Instant AFRIKHER"}
-            </h3>
-          </div>
-
-          <div className="min-h-[5.75rem]">
-            <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
-              {item.description || "Une image issue de l’univers éditorial AFRIKHER."}
+        <div className="pt-3.5">
+          <span className="font-body text-[0.58rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+            Photo
+          </span>
+          <h3 className="mt-1.5 line-clamp-2 font-display text-[1.4rem] leading-[1.1] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+            {item.title || "Instant AFRIKHER"}
+          </h3>
+          {item.description && (
+            <p className="mt-2 line-clamp-2 font-body text-[0.85rem] leading-[1.65] text-[#0A0A0A]/50">
+              {item.description}
             </p>
-          </div>
-
-          <div className="mt-auto pt-5">
-            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-              Voir la photo
-              <ArrowRight size={13} />
-            </span>
-          </div>
+          )}
         </div>
       </article>
     </Link>
@@ -424,10 +455,10 @@ export default function RubriquesPage() {
       href={item.url}
       target="_blank"
       rel="noreferrer"
-      className="group block h-full no-underline"
+      className="group block no-underline"
     >
-      <article className="flex h-full flex-col">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#2A2A2A]">
+      <article>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-[#111]">
           {item.thumbnail ? (
             <img
               src={item.thumbnail}
@@ -435,43 +466,29 @@ export default function RubriquesPage() {
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-[#111111]">
-              <Play size={32} className="text-[#C9A84C]" />
+            <div className="flex h-full w-full items-center justify-center">
+              <Play size={28} className="text-[#C9A84C]" />
             </div>
           )}
-          <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/15" />
+          <div className="absolute inset-0 bg-black/25 transition-colors duration-300 group-hover:bg-black/10" />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
               <Play size={18} className="translate-x-[1px]" />
             </span>
           </div>
         </div>
-
-        <div className="flex flex-1 flex-col pt-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="font-body text-[0.62rem] uppercase tracking-[0.22em] text-[#C9A84C]">
-              Vidéo
-            </span>
-          </div>
-
-          <div className="min-h-[4.3rem]">
-            <h3 className="line-clamp-2 font-display text-[1.8rem] leading-[1.08] tracking-[-0.015em] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
-              {item.title}
-            </h3>
-          </div>
-
-          <div className="min-h-[5.75rem]">
-            <p className="mt-3 line-clamp-3 font-body text-[0.94rem] leading-[1.8] text-[#0A0A0A]/56">
-              {item.description || "Une vidéo issue de l’univers éditorial AFRIKHER."}
+        <div className="pt-3.5">
+          <span className="font-body text-[0.58rem] uppercase tracking-[0.22em] text-[#C9A84C]">
+            Video
+          </span>
+          <h3 className="mt-1.5 line-clamp-2 font-display text-[1.4rem] leading-[1.1] text-[#0A0A0A] transition-colors duration-300 group-hover:text-[#C9A84C]">
+            {item.title}
+          </h3>
+          {item.description && (
+            <p className="mt-2 line-clamp-2 font-body text-[0.85rem] leading-[1.65] text-[#0A0A0A]/50">
+              {item.description}
             </p>
-          </div>
-
-          <div className="mt-auto pt-5">
-            <span className="inline-flex items-center gap-2 font-body text-[0.64rem] font-semibold uppercase tracking-[0.2em] text-[#0A0A0A]/70 transition-colors duration-300 group-hover:text-[#C9A84C]">
-              Regarder
-              <ArrowRight size={13} />
-            </span>
-          </div>
+          )}
         </div>
       </article>
     </Link>
@@ -479,33 +496,22 @@ export default function RubriquesPage() {
 
   const renderEmptyState = (tab: ActiveTab) => {
     const labels: Record<ActiveTab, string> = {
-      articles: "Aucun article trouvé",
-      gallery: "La galerie arrive bientôt",
+      chapitres: "Aucun chapitre configure",
+      articles: "Aucun article trouve",
       photos: "Aucune photo disponible",
-      videos: "Aucune vidéo disponible",
-    };
-
-    const descriptions: Record<ActiveTab, string> = {
-      articles:
-        "Essaie une autre recherche pour retrouver la sélection éditoriale AFRIKHER.",
-      gallery:
-        "Les photos et vidéos éditoriales apparaîtront ici dès que le contenu sera alimenté.",
-      photos:
-        "Les visuels éditoriaux apparaîtront ici dès que la galerie photos sera alimentée.",
-      videos:
-        "Les vidéos éditoriales apparaîtront ici dès que la section vidéos sera alimentée.",
+      videos: "Aucune video disponible",
     };
 
     return (
-      <div className="rounded-[1.75rem] border border-[#E6DFD2] bg-white/72 px-8 py-16 text-center">
-        <p className="font-display text-[2rem] text-[#0A0A0A]/68">{labels[tab]}</p>
+      <div className="rounded-2xl border border-[#E6DFD2] bg-white/72 px-8 py-16 text-center">
+        <p className="font-display text-[1.8rem] text-[#0A0A0A]/65">{labels[tab]}</p>
         <p className="mt-3 font-body text-sm leading-relaxed text-[#8D877C]">
-          {descriptions[tab]}
+          Le contenu apparaitra ici des qu&apos;il sera publie depuis l&apos;administration.
         </p>
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="mt-6 font-body text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[#C9A84C] hover:underline"
+            className="mt-5 font-body text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#C9A84C] hover:underline"
           >
             Effacer la recherche
           </button>
@@ -514,69 +520,56 @@ export default function RubriquesPage() {
     );
   };
 
+  /* ─── Layout ─── */
   return (
     <main className="bg-[#F5F0E8] text-[#0A0A0A]">
       <div className="fixed left-0 right-0 top-0 z-[90] h-20 bg-[#0A0A0A]" />
       <Navbar />
 
-      <section className="bg-[#F5F0E8] pb-8 pt-24">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
+      {/* ─── Hero ─── */}
+      <section className="bg-[#F5F0E8] pb-6 pt-24">
+        <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-12">
+          <div className="grid gap-6 lg:grid-cols-[1fr_22rem] lg:items-end">
             <div>
-              <p className="mb-3 font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                {siteConfig.rubriques_editorial_titre || "Editorial"}
+              <p className="mb-2 font-body text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                {siteConfig.rubriques_badge || "Editorial"}
               </p>
-              <h1 className="font-display text-[2.6rem] leading-[0.96] tracking-[-0.025em] text-[#0A0A0A] md:text-[3.8rem]">
-                Les Rubriques<span className="text-[#C9A84C]">.</span>
+              <h1 className="font-display text-[2.5rem] leading-[0.96] tracking-[-0.025em] text-[#0A0A0A] md:text-[3.6rem]">
+                {siteConfig.rubriques_titre || "Les Rubriques"}
+                <span className="text-[#C9A84C]">.</span>
               </h1>
-              <p className="mt-2.5 max-w-[34rem] font-body text-[0.98rem] leading-[1.72] text-[#0A0A0A]/58">
-                {siteConfig.rubriques_editorial_sous_titre ||
-                  "Un sommaire éditorial pensé comme une sélection AFRIKHER : articles, galerie, photos et vidéos à parcourir avec clarté."}
+              <p className="mt-2 max-w-[34rem] font-body text-[0.92rem] leading-[1.72] text-[#0A0A0A]/55">
+                {siteConfig.rubriques_soustitre || "Le Sommaire d'AFRIKHER"}
               </p>
-              <p className="mt-3.5 max-w-[38rem] font-body text-[0.95rem] leading-[1.72] text-[#0A0A0A]/66">
+              <p className="mt-3 max-w-[38rem] font-body text-[0.92rem] leading-[1.72] text-[#0A0A0A]/65">
                 {editorialTexte}
               </p>
             </div>
 
+            {/* Search */}
             <div className="relative w-full">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  activeTab === "articles"
-                    ? "Rechercher un article..."
-                    : activeTab === "gallery"
-                      ? "Rechercher dans la galerie..."
-                      : activeTab === "photos"
-                        ? "Rechercher une photo..."
-                        : activeTab === "videos"
-                          ? "Rechercher une vidéo..."
-                          : "Rechercher un contenu..."
-                }
-                className="w-full rounded-2xl border border-[#E6DFD2] bg-white/90 py-3 pl-5 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors placeholder:text-[#8D877C] focus:border-[#C9A84C]"
+                placeholder="Rechercher un contenu..."
+                className="w-full rounded-xl border border-[#E6DFD2] bg-white/90 py-3 pl-5 pr-11 font-body text-sm text-[#0A0A0A] outline-none transition-colors placeholder:text-[#8D877C] focus:border-[#C9A84C]"
               />
-              <Search
-                size={16}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8D877C]"
-              />
+              <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8D877C]" />
             </div>
           </div>
 
+          {/* Citation block */}
           {(editorialImage || editorialCitation) && (
-            <div className="mt-5 rounded-[1.75rem] border border-[#EAE2D4] bg-white/56 px-6 py-4.5 md:px-8">
-              <div className="flex flex-col items-start gap-5 md:flex-row md:items-center">
+            <div className="mt-5 rounded-2xl border border-[#EAE2D4] bg-white/56 px-6 py-4 md:px-8">
+              <div className="flex flex-col items-start gap-4 md:flex-row md:items-center">
                 {editorialImage && (
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-[#C9A84C]/30">
-                    <img
-                      src={editorialImage}
-                      alt="Editorial"
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-[#C9A84C]/30">
+                    <img src={editorialImage} alt="Editorial" className="h-full w-full object-cover" />
                   </div>
                 )}
                 {editorialCitation && (
-                  <p className="max-w-[52rem] font-display text-[1.02rem] italic leading-[1.85] text-[#2A2A2A]/76 md:text-[1.16rem]">
+                  <p className="max-w-[50rem] font-display text-[1rem] italic leading-[1.8] text-[#2A2A2A]/72 md:text-[1.1rem]">
                     &ldquo;{editorialCitation}&rdquo;
                   </p>
                 )}
@@ -586,105 +579,90 @@ export default function RubriquesPage() {
         </div>
       </section>
 
-      <section className="bg-[#F5F0E8] pb-6">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
-          <div className="border-t border-black/[0.06] pt-6">
+      {/* ─── Tabs ─── */}
+      <section className="bg-[#F5F0E8] pb-4">
+        <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-12">
+          <div className="border-t border-black/[0.06] pt-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex flex-wrap items-center gap-4">
-                {CONTENT_TABS.map((tab) => (
+              <div className="flex flex-wrap items-center gap-5">
+                {visibleTabs.map((tab) => (
                   <button
                     key={tab.value}
                     onClick={() => setActiveTab(tab.value)}
-                    className={`border-b pb-1 font-body text-[0.76rem] font-medium uppercase tracking-[0.16em] transition-all duration-300 ${
+                    className={`flex items-center gap-2 border-b-2 pb-1.5 font-body text-[0.72rem] font-medium uppercase tracking-[0.14em] transition-all duration-300 ${
                       activeTab === tab.value
                         ? "border-[#C9A84C] text-[#C9A84C]"
                         : "border-transparent text-[#8D877C] hover:text-[#0A0A0A]"
                     }`}
                   >
                     {tab.label}
+                    <span className={`rounded-full px-1.5 py-0.5 text-[0.58rem] ${
+                      activeTab === tab.value
+                        ? "bg-[#C9A84C]/10 text-[#C9A84C]"
+                        : "bg-black/5 text-[#8D877C]"
+                    }`}>
+                      {tabCounts[tab.value]}
+                    </span>
                   </button>
                 ))}
               </div>
-
-              <p className="font-body text-[0.78rem] text-[#8D877C]">
-                {activeCount} contenu{activeCount > 1 ? "s" : ""}
-              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-[#F5F0E8] pb-16">
-        <div className="max-w-7xl mx-auto px-6 md:px-10 lg:px-12">
+      {/* ─── Content ─── */}
+      <section className="bg-[#F5F0E8] pb-20">
+        <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-12">
           {loading ? (
-            <div className="grid w-full grid-cols-1 items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {[...Array(3)].map((_, i) => (
+            <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="mb-4 aspect-[4/3] rounded-[1.25rem] bg-[#E8E5DE]" />
+                  <div className="mb-4 aspect-[3/4] rounded-2xl bg-[#E8E5DE]" />
                   <div className="mb-3 h-3 w-1/4 rounded bg-[#E8E5DE]" />
-                  <div className="mb-3 h-6 w-3/4 rounded bg-[#E8E5DE]" />
+                  <div className="mb-2 h-5 w-3/4 rounded bg-[#E8E5DE]" />
                   <div className="h-4 w-full rounded bg-[#E8E5DE]" />
                 </div>
               ))}
             </div>
+          ) : activeTab === "chapitres" ? (
+            chapters.length === 0 ? (
+              renderEmptyState("chapitres")
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <p className="font-body text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Structure
+                  </p>
+                  <h2 className="mt-2 font-display text-[2.2rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[2.8rem]">
+                    Chapitres
+                  </h2>
+                  <p className="mt-2 max-w-[32rem] font-body text-[0.88rem] leading-[1.7] text-[#0A0A0A]/50">
+                    Les blocs editoriaux ou rubriques affiches sur la page.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {chapters.map((chapter, index) => renderChapterCard(chapter, index))}
+                </div>
+              </div>
+            )
           ) : activeTab === "articles" ? (
             filteredArticles.length === 0 ? (
               renderEmptyState("articles")
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div>
-                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                    Sélection éditoriale
+                  <p className="font-body text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Selection editoriale
                   </p>
-                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                  <h2 className="mt-2 font-display text-[2.2rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[2.8rem]">
                     Articles AFRIKHER
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-x-7 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
                   {filteredArticles.map((item) => renderArticleCard(item))}
-                </div>
-
-                {searchQuery.trim() !== "" &&
-                  filteredArticles.length < 3 &&
-                  articleSuggestions.length > 0 && (
-                    <div className="border-t border-black/[0.06] pt-8">
-                      <div className="mb-6">
-                        <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                          À découvrir aussi
-                        </p>
-                        <p className="mt-2 font-body text-sm text-[#8D877C]">
-                          Une sélection complémentaire pour garder une page vivante même avec peu de résultats.
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                        {articleSuggestions.map((item) => renderArticleCard(item, true))}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            )
-          ) : activeTab === "gallery" ? (
-            galleryItems.length === 0 ? (
-              renderEmptyState("gallery")
-            ) : (
-              <div className="space-y-8">
-                <div>
-                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                    Galerie éditoriale
-                  </p>
-                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                    Photos &amp; vidéos
-                  </h2>
-                </div>
-
-                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
-                  {galleryItems.map((item) =>
-                    item.mediaType === "photo"
-                      ? renderPhotoCard(item)
-                      : renderVideoCard(item)
-                  )}
                 </div>
               </div>
             )
@@ -692,17 +670,17 @@ export default function RubriquesPage() {
             filteredPhotos.length === 0 ? (
               renderEmptyState("photos")
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div>
-                  <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                    Galerie photos
+                  <p className="font-body text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                    Galerie
                   </p>
-                  <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
+                  <h2 className="mt-2 font-display text-[2.2rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[2.8rem]">
                     Photos AFRIKHER
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredPhotos.map((item) => renderPhotoCard(item))}
                 </div>
               </div>
@@ -710,17 +688,17 @@ export default function RubriquesPage() {
           ) : filteredVideos.length === 0 ? (
             renderEmptyState("videos")
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div>
-                <p className="font-body text-[0.68rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
-                  Sélection vidéo
+                <p className="font-body text-[0.65rem] font-medium uppercase tracking-[0.32em] text-[#C9A84C]">
+                  Selection video
                 </p>
-                <h2 className="mt-3 font-display text-[2.35rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[3rem]">
-                  Vidéos AFRIKHER
+                <h2 className="mt-2 font-display text-[2.2rem] leading-[0.98] tracking-[-0.02em] text-[#0A0A0A] md:text-[2.8rem]">
+                  Videos AFRIKHER
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredVideos.map((item) => renderVideoCard(item))}
               </div>
             </div>
